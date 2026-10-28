@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 65725082169653318}
   - component: {fileID: 2590211260721384679}
   - component: {fileID: 4945594516828591320}
+  - component: {fileID: 2695938281756041104}
   m_Layer: 0
   m_Name: SongManager
   m_TagString: Untagged
@@ -50,9 +51,9 @@ MonoBehaviour:
   bpm: 0
   beatsPerMeasure: 0
   startDelay: 1
-  startTime: 0
-  timeInSong: 0
-  beatInSong: 0
+  firstBeatOffset: 0
+  beatsPerLoop: 0
+  presetBeatData: []
 --- !u!82 &4945594516828591320
 AudioSource:
   m_ObjectHideFlags: 0
@@ -150,3 +151,16 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2695938281756041104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2099304517688884663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c14c93b04484cada65c50d881fcd00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BeatManager
+  beatSpacing: 0

@@ -1,7 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Tracing;
+using System.Linq;
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.AI;
 
 //TODO: Add support for looped audio (Easy) or looping a segment of the audio after initial playback(Hard?)
+/// <summary>
+/// Keeps track of the beat/time in the current song.
+/// Loop and beat numbers are zero indexed (The first beat/loop is beat/loop number 0).
+/// Assumes song starts on the first beat (Trim audio so first beat is at t = 0).
+/// </summary>
 public class SongManager : MonoBehaviour
 {
     [SerializeField] AudioSource audio;
@@ -17,10 +27,30 @@ public class SongManager : MonoBehaviour
 
     [Tooltip("Delay in seconds after Start() for audio to start playing. Should be at least 0.5s to pad software delays")]
     [SerializeField] public float startDelay = 1f; //in seconds
+
+    [Tooltip("Delay before the first beat of the song plays. Use to account for pickups/intros. Not made to support looped audio.")]
+    [SerializeField] public float firstBeatOffset;
+
     float timePerBeat;
-    public float startTime;
-    public float timeInSong;
-    public float beatInSong; //Zero indexed
+
+    //Actual dsp time when the song starts
+    float _startTime;
+    public float startTime => _startTime;
+    float _timeInSong;
+    public float timeInSong => _timeInSong;
+    float _beatInSong; //Zero indexed: First beat is beat 0
+    public float beatInSong => _beatInSong;
+    
+    public float beatsPerLoop;
+    float _beatInLoop; //Zero indexed
+    public float beatInLoop => _beatInLoop;
+    float _loopNumber; //Zero indexed
+    public float loopNumber => _loopNumber;
+
+    [Tooltip("Positions of the spawned beats in terms of the beat in the song. Will loop at the end. Assumes beats are listed in chronological order")]
+    [SerializeField] BeatData[] presetBeatData;
+
+    [NonSerialized] public List<BeatData> beatData;
     
     void Awake()
     {
@@ -36,16 +66,50 @@ public class SongManager : MonoBehaviour
     {
         timePerBeat = 60f / bpm;
 
-        startTime = startDelay + (float)AudioSettings.dspTime;
+        _startTime = startDelay + (float)AudioSettings.dspTime;
         audio.PlayScheduled(startDelay);
+
+        InitializeBeatData();
     }
 
     //Calculate position in time/beat, which includes pickups.
     //Position in measures should be calculated on demand.
     void Update()
     {
-        timeInSong = (float)AudioSettings.dspTime - startDelay;
-        beatInSong = timeInSong / timePerBeat;
+        _timeInSong = (float)AudioSettings.dspTime - _startTime;
+        _beatInSong = _timeInSong / timePerBeat;
+        if (audio.loop)
+        {
+            _loopNumber = _beatInSong / beatsPerLoop;
+            _beatInLoop = _beatInSong - (Mathf.Floor(_loopNumber) * beatsPerLoop);
+            if (beatData != null && beatData.Count == 0)
+            {
+                InitializeBeatData();
+            }
+        }
+
+        //Update positions of beatData
+        if (beatData != null)
+        {        
+            foreach (BeatData beat in beatData)
+            {
+                beat.beatsUntilPlay = beat.positionInBeats - (audio.loop ? _beatInLoop : _beatInSong);
+            }
+            beatData.RemoveAll(beat => beat.beatsUntilPlay <= 0);
+        }
+    }
+
+    /// <summary>
+    /// Fills beatData with loops of the presetBeatData up to the number of beats in the song loop;
+    /// </summary>
+    public void InitializeBeatData()
+    {
+        beatData = new List<BeatData>();
+
+        for (float i = 0; i < beatsPerLoop; i += (presetBeatData[presetBeatData.Length - 1].positionInBeats))
+        {
+            beatData.AddRange(presetBeatData);
+        }
     }
 
     /// <summary>
@@ -55,16 +119,31 @@ public class SongManager : MonoBehaviour
     /// <returns>0 indexed fractional position in measures</returns>
     public float MeasureInSong()
     {
-        beatInSong = timeInSong / timePerBeat;
-        if (beatInSong <= pickupBeats - 1)
+        _beatInSong = _timeInSong / timePerBeat;
+        if (_beatInSong <= pickupBeats - 1)
         {
             //Start partway through measure on a pickup
-            return 1f - (pickupBeats - beatInSong)/beatsPerMeasure;
+            return 1f - (pickupBeats - _beatInSong)/beatsPerMeasure;
         }
         else
         {
             //Account for added measure from pickup
-            return (beatInSong - pickupBeats) / beatsPerMeasure + (pickupBeats > 0 ? 1 : 0);
+            return (_beatInSong - pickupBeats) / beatsPerMeasure + (pickupBeats > 0 ? 1 : 0);
         }
     }
 }
+
+    [Serializable]
+    public class BeatData
+    {
+        [SerializeField] public float positionInBeats;
+
+        [NonSerialized] public float beatsUntilPlay; //Position from center along UI
+        [SerializeField] public bool isPlayer2;
+        public BeatData(float positionInBeats, bool isPlayer2)
+        {
+            this.positionInBeats = positionInBeats;
+            beatsUntilPlay = 0;
+            this.isPlayer2 = isPlayer2;
+        }
+    }
