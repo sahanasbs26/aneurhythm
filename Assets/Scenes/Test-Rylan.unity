@@ -694,7 +694,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: bpm
-      value: 60
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: pickupBeats
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatsPerLoop
@@ -748,6 +752,10 @@ PrefabInstance:
       propertyPath: parentPanel
       value: 
       objectReference: {fileID: 881452598}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: maxPoolCapacity
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: screenHalfWidth
       value: 1000

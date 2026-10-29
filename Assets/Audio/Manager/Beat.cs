@@ -31,10 +31,12 @@ public class Beat : MonoBehaviour
             if (data == null)
             {
                 Debug.LogError("Beat does not have data");
-            } else if (beatManager == null)
+            }
+            if (beatManager == null)
             {
                 Debug.LogError("Beat's manager is null");
             }
+            return;
         }
 
         if (data.beatsUntilPlay <= 0)
@@ -55,7 +57,7 @@ public class Beat : MonoBehaviour
     {
         //TODO: Interpolate between position changes
         Vector3 currentPos = rectTransform.anchoredPosition;
-        float x = data.beatsUntilPlay * beatManager.beatSpacing * (data.isPlayer2 ? -1 : 1);
+        float x = data.beatsUntilPlay * beatManager.beatSpacing * (data.isPlayer2 ? 1 : -1);
         rectTransform.anchoredPosition = new Vector3(x, currentPos.y, currentPos.z);
     }
 

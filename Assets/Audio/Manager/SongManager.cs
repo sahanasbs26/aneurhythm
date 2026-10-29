@@ -16,7 +16,7 @@ public class SongManager : MonoBehaviour
 {
     [SerializeField] public AudioSource audio;
     
-    [Tooltip("Number of beats in the pickup measure")]
+    [Tooltip("Number of beats to wait before first displayed beat reaches the center")]
     [SerializeField] int pickupBeats;
 
     [Tooltip("Beats per minute. A 'beat' should be the subdivision in the key signature. (E.g. in 3/8 a beat should be an eight note)")]
@@ -26,26 +26,26 @@ public class SongManager : MonoBehaviour
     [SerializeField] public int beatsPerMeasure;
 
     [Tooltip("Delay in seconds after Start() for audio to start playing. Should be at least 0.5s to pad software delays")]
-    [SerializeField] public float startDelay = 1f; //in seconds
+    [SerializeField] public double startDelay = 1f; //in seconds
 
     [Tooltip("Delay before the first beat of the song plays. Use to account for pickups/intros. Not made to support looped audio.")]
-    [SerializeField] public float firstBeatOffset;
+    [SerializeField] public double firstBeatOffset;
 
-    float timePerBeat;
+    double timePerBeat;
 
     //Actual dsp time when the song starts
-    float _startTime;
-    public float startTime => _startTime;
-    float _timeInSong;
-    public float timeInSong => _timeInSong;
-    float _beatInSong; //Zero indexed: First beat is beat 0
-    public float beatInSong => _beatInSong;
+    double _startTime;
+    public double startTime => _startTime;
+    double _timeInSong;
+    public double timeInSong => _timeInSong;
+    double _beatInSong; //Zero indexed: First beat is beat 0
+    public double beatInSong => _beatInSong;
     
-    public float beatsPerLoop;
-    float _beatInLoop; //Zero indexed
-    public float beatInLoop => _beatInLoop;
-    float _loopNumber; //Zero indexed
-    public float loopNumber => _loopNumber;
+    public double beatsPerLoop;
+    double _beatInLoop; //Zero indexed
+    public double beatInLoop => _beatInLoop;
+    double _loopNumber; //Zero indexed
+    public double loopNumber => _loopNumber;
     
     void Awake()
     {
@@ -61,20 +61,20 @@ public class SongManager : MonoBehaviour
     {
         timePerBeat = 60f / bpm;
 
-        _startTime = startDelay + (float)AudioSettings.dspTime;
-        audio.PlayScheduled(startDelay);
+        _startTime = startDelay + AudioSettings.dspTime;
+        audio.PlayScheduled(_startTime);
     }
 
     //Calculate position in time/beat, which includes pickups.
     //Position in measures should be calculated on demand.
     void Update()
     {
-        _timeInSong = (float)AudioSettings.dspTime - _startTime;
+        _timeInSong = AudioSettings.dspTime - _startTime - (pickupBeats * timePerBeat);
         _beatInSong = _timeInSong / timePerBeat;
         if (audio.loop)
         {
             _loopNumber = _beatInSong / beatsPerLoop;
-            _beatInLoop = _beatInSong - (Mathf.Floor(_loopNumber) * beatsPerLoop);
+            _beatInLoop = _beatInSong - (Math.Floor(_loopNumber) * beatsPerLoop);
         }
     }
 
@@ -83,9 +83,8 @@ public class SongManager : MonoBehaviour
     /// Pickup notes are treated as the first measure = measure 0
     /// </summary>
     /// <returns>0 indexed fractional position in measures</returns>
-    public float MeasureInSong()
+    public double MeasureInSong()
     {
-        _beatInSong = _timeInSong / timePerBeat;
         if (_beatInSong <= pickupBeats - 1)
         {
             //Start partway through measure on a pickup
