@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 65725082169653318}
   - component: {fileID: 2590211260721384679}
-  - component: {fileID: 4945594516828591320}
   - component: {fileID: 2695938281756041104}
+  - component: {fileID: 4945594516828591320}
   m_Layer: 0
   m_Name: SongManager
   m_TagString: Untagged
@@ -48,12 +48,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SongManager
   audio: {fileID: 0}
   pickupBeats: 0
-  bpm: 0
-  beatsPerMeasure: 0
+  bpm: 120
+  beatsPerMeasure: 4
   startDelay: 1
   firstBeatOffset: 0
-  beatsPerLoop: 0
-  presetBeatData: []
+  beatsPerLoop: 8
+--- !u!114 &2695938281756041104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2099304517688884663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c14c93b04484cada65c50d881fcd00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BeatManager
+  beatSpacing: 100
+  screenHalfWidth: 500
+  beatPrefab: {fileID: 1832842443035105614, guid: a15cfe5d448234dcab74788cbdc17533, type: 3}
+  parentPanel: {fileID: 0}
+  beatPositionY: 0
+  poolDefaultCapacity: 30
+  maxPoolCapacity: 200
+  presetBeatData:
+  - positionInBeats: 1
+    isPlayer2: 0
+  - positionInBeats: 2
+    isPlayer2: 1
+  - positionInBeats: 3
+    isPlayer2: 0
+  - positionInBeats: 4
+    isPlayer2: 1
 --- !u!82 &4945594516828591320
 AudioSource:
   m_ObjectHideFlags: 0
@@ -151,16 +178,3 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &2695938281756041104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2099304517688884663}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 01c14c93b04484cada65c50d881fcd00, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BeatManager
-  beatSpacing: 0

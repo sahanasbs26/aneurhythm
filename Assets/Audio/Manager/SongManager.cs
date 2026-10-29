@@ -14,7 +14,7 @@ using UnityEngine.AI;
 /// </summary>
 public class SongManager : MonoBehaviour
 {
-    [SerializeField] AudioSource audio;
+    [SerializeField] public AudioSource audio;
     
     [Tooltip("Number of beats in the pickup measure")]
     [SerializeField] int pickupBeats;
@@ -46,11 +46,6 @@ public class SongManager : MonoBehaviour
     public float beatInLoop => _beatInLoop;
     float _loopNumber; //Zero indexed
     public float loopNumber => _loopNumber;
-
-    [Tooltip("Positions of the spawned beats in terms of the beat in the song. Will loop at the end. Assumes beats are listed in chronological order")]
-    [SerializeField] BeatData[] presetBeatData;
-
-    [NonSerialized] public List<BeatData> beatData;
     
     void Awake()
     {
@@ -68,8 +63,6 @@ public class SongManager : MonoBehaviour
 
         _startTime = startDelay + (float)AudioSettings.dspTime;
         audio.PlayScheduled(startDelay);
-
-        InitializeBeatData();
     }
 
     //Calculate position in time/beat, which includes pickups.
@@ -82,33 +75,6 @@ public class SongManager : MonoBehaviour
         {
             _loopNumber = _beatInSong / beatsPerLoop;
             _beatInLoop = _beatInSong - (Mathf.Floor(_loopNumber) * beatsPerLoop);
-            if (beatData != null && beatData.Count == 0)
-            {
-                InitializeBeatData();
-            }
-        }
-
-        //Update positions of beatData
-        if (beatData != null)
-        {        
-            foreach (BeatData beat in beatData)
-            {
-                beat.beatsUntilPlay = beat.positionInBeats - (audio.loop ? _beatInLoop : _beatInSong);
-            }
-            beatData.RemoveAll(beat => beat.beatsUntilPlay <= 0);
-        }
-    }
-
-    /// <summary>
-    /// Fills beatData with loops of the presetBeatData up to the number of beats in the song loop;
-    /// </summary>
-    public void InitializeBeatData()
-    {
-        beatData = new List<BeatData>();
-
-        for (float i = 0; i < beatsPerLoop; i += (presetBeatData[presetBeatData.Length - 1].positionInBeats))
-        {
-            beatData.AddRange(presetBeatData);
         }
     }
 
@@ -132,18 +98,3 @@ public class SongManager : MonoBehaviour
         }
     }
 }
-
-    [Serializable]
-    public class BeatData
-    {
-        [SerializeField] public float positionInBeats;
-
-        [NonSerialized] public float beatsUntilPlay; //Position from center along UI
-        [SerializeField] public bool isPlayer2;
-        public BeatData(float positionInBeats, bool isPlayer2)
-        {
-            this.positionInBeats = positionInBeats;
-            beatsUntilPlay = 0;
-            this.isPlayer2 = isPlayer2;
-        }
-    }
