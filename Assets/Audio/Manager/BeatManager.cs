@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -25,11 +26,17 @@ public class BeatManager : MonoBehaviour
 
     int pregeneratedLoops;
 
+    double nextBeat;
+    double missedBeatWindow = 0.2;
+    int patternIndex;
+
+    [SerializeField] double front;
+
     ObjectPool<Beat> beatObjectPool;
-    Queue<BeatData> activeBeatObjects;
+    Queue<Beat> activeBeatObjects;
 
     [Tooltip("Positions of the spawned beats in terms of the beat in the song. Will loop at the end. Assumes beats are listed in chronological order")]
-    [SerializeField] BeatData[] presetBeatData;
+    [SerializeField] BeatData[] beatPattern;
     [SerializeField] public List<BeatData> pregeneratedBeatData;
 
     void Awake()
@@ -38,50 +45,58 @@ public class BeatManager : MonoBehaviour
 
         beatObjectPool = new ObjectPool<Beat>(CreateBeat, OnGetFromPool, OnReleaseFromPool, OnDestroyPooledObject, true, poolDefaultCapacity, maxPoolCapacity);
         pregeneratedBeatData = new List<BeatData>();
+        activeBeatObjects = new Queue<Beat>();
     }
 
     void Start()
     {
-        InitializeBeatData();
+        patternIndex = 0;
+        nextBeat = beatPattern[patternIndex % beatPattern.Length].positionInBeats;
         pregeneratedLoops = 0;
     }
 
     void Update()
     {
-        //If beatData is empty (e.g. at the start of a song loop), reinitialize
-        if (pregeneratedBeatData != null && Math.Ceiling(songManager.loopNumber) > pregeneratedLoops && (songManager.beatsPerLoop - songManager.beatInLoop) * beatSpacing < screenHalfWidth + beatSpacing)
+        double now = songManager.beatInSong;
+        double lookahead = 1f + screenHalfWidth / beatSpacing;
+
+        //Spawn the next beat in the song (enumerating through the presetBeatData)
+        //point towards queue + beat distance of next preset beat, once within the lookahead, spawn beat and advance the preset index
+        while (nextBeat - now <= lookahead)
         {
-            Debug.Log("Regenerated beat data");
-            InitializeBeatData();
-            pregeneratedLoops = (int)Math.Ceiling(songManager.loopNumber);
-        }
-
-        //Update positions of beatData
-        if (pregeneratedBeatData != null)
-        {        
-            foreach (BeatData beatData in pregeneratedBeatData)
+            activeBeatObjects.Enqueue(SpawnBeat(new BeatData(nextBeat, beatPattern[patternIndex].isPlayer2)));
+            if (patternIndex == beatPattern.Length - 1)
             {
-                beatData.beatsUntilPlay = beatData.positionInBeats - (float)songManager.beatInSong;
-
-                //Spawn beats that should appear on screen
-                if (!beatData.hasSpawned && beatData.beatsUntilPlay > 0 && beatData.beatsUntilPlay * beatSpacing <= (screenHalfWidth + beatSpacing)) //Spawn beats offscreen
-                {
-                    Debug.Log("Spawned " + (beatData.isPlayer2 ? "P2" : "P1") + " beat: " + beatData.beatsUntilPlay);
-                    beatData.hasSpawned = true;
-                    SpawnBeat(beatData);
-                }
-
-                //Despawning is handled by the beat itself.
+                nextBeat += beatPattern[0].positionInBeats;
+            } else
+            {
+                nextBeat += beatPattern[patternIndex + 1].positionInBeats - beatPattern[patternIndex].positionInBeats;
             }
-            pregeneratedBeatData.RemoveAll(beat => beat.beatsUntilPlay <= 0);
+            patternIndex = (patternIndex + 1) % beatPattern.Length;
         }
+        //Get beat from the pool and add beat to queue
+
+        //Update positions of spawned beats
+        //enumerate through queue
+        foreach(Beat beat in activeBeatObjects)
+        {
+            beat.SetX((float)(beat.data.positionInBeats - now) * beatSpacing * (beat.data.isPlayer2 ? 1 : -1));
+        }
+
+        //TODO: Have judgment class destroy missed beats
+        //  After a waiting for the player to attempt to hit the beat, destroy
+        //  For now, handle here
+        while (activeBeatObjects.Count > 0 && (activeBeatObjects.Peek().data.positionInBeats - now) < -missedBeatWindow)
+        {
+            beatObjectPool.Release(activeBeatObjects.Dequeue());
+        }
+
     }
 
     Beat SpawnBeat(BeatData beatData)
     {
         Beat beat = beatObjectPool.Get();
         beat.data = beatData;
-        beat.SetPos();
         return beat;
     }
 
@@ -110,21 +125,5 @@ public class BeatManager : MonoBehaviour
     void OnDestroyPooledObject(Beat beat)
     {
         Destroy(beat.gameObject);
-    }
-
-    /// <summary>
-    /// Fills beatData with loops of the presetBeatData up to the number of beats in the song loop;
-    ///! Might result in weirdness if position/beatsPerLoop is not an integer
-    /// </summary>
-    public void InitializeBeatData()
-    {
-        //Fills list of beatdata with repetitions of the presetBeatData for one loop
-        for (float i = 0; i < songManager.beatsPerLoop; i += presetBeatData[presetBeatData.Length - 1].positionInBeats)
-        {
-            foreach(BeatData beatData in presetBeatData)
-            {
-                pregeneratedBeatData.Add(new BeatData((float)(Math.Ceiling(songManager.loopNumber) * songManager.beatsPerLoop) + beatData.positionInBeats + i, beatData.isPlayer2));
-            }
-        }
     }
 }
