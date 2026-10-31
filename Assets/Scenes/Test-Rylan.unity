@@ -640,6 +640,11 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!82 &1479356103 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 4945594516828591320, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+  m_PrefabInstance: {fileID: 2569019474343448742}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2569019474343448742
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -697,12 +702,20 @@ PrefabInstance:
       value: 120
       objectReference: {fileID: 0}
     - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: audio
+      value: 
+      objectReference: {fileID: 1479356103}
+    - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: startDelay
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: pickupBeats
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatsPerLoop
-      value: 4
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 2590211260721384679, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatsPerMeasure
@@ -753,6 +766,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 881452598}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPositionY
+      value: -400
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: maxPoolCapacity
       value: 100
       objectReference: {fileID: 0}
@@ -761,11 +778,27 @@ PrefabInstance:
       value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: missedBeatWindow
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: patternLengthBeats
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.size
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[0].isPlayer2
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.data[1].isPlayer2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[2].isPlayer2
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
@@ -773,28 +806,52 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[4].isPlayer2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[5].isPlayer2
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: presetBeatData.Array.data[2].isPlayer2
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.data[0].positionInBeats
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.data[1].positionInBeats
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.data[2].positionInBeats
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: beatPattern.Array.data[3].positionInBeats
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[4].positionInBeats
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: beatPattern.Array.data[5].positionInBeats
       value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4945594516828591320, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: Loop
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4945594516828591320, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: m_Resource
+      value: 
+      objectReference: {fileID: 8300000, guid: c65af59ee32dc48ea98566504aae8d13, type: 3}
+    - target: {fileID: 4945594516828591320, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: m_PlayOnAwake
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

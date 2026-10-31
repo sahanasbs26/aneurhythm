@@ -1,21 +1,15 @@
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Pool;
-
 /// <summary>
 /// 
 /// </summary>
 [Serializable]
 public class Beat : MonoBehaviour
 {
-    public BeatData data;
-    public SongManager songManager;
-    public BeatManager beatManager;
-    
-    [NonSerialized] public ObjectPool<Beat> objectPool;
-
-    RectTransform rectTransform;
+    public double positionInBeats;
+    public bool isPlayer2;
+    [NonSerialized] public RectTransform rectTransform;
 
     void Awake()
     {
@@ -29,8 +23,8 @@ public class Beat : MonoBehaviour
     public void SetX(float x)
     {
         //TODO: Interpolate between position changes
-        Vector3 currentPos = rectTransform.anchoredPosition;
-        rectTransform.anchoredPosition = new Vector3(x, currentPos.y, currentPos.z);
+        Vector2 currentPos = rectTransform.anchoredPosition;
+        rectTransform.anchoredPosition = new Vector2(x, currentPos.y);
     }
 }
 
@@ -38,10 +32,10 @@ public class Beat : MonoBehaviour
 /// Holds minimal beat data for all beats to be constantly updated by beatManager
 /// </summary>
 [Serializable]
-public class BeatData
+public struct BeatData
 {
-    [SerializeField] public double positionInBeats;
-    [SerializeField] public bool isPlayer2;
+    public double positionInBeats;
+    public bool isPlayer2;
 
     public BeatData(double positionInBeats, bool isPlayer2)
     {

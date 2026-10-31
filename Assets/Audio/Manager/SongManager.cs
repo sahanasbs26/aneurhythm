@@ -1,10 +1,5 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics.Tracing;
-using System.Linq;
-using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.AI;
 
 //TODO: Add support for looped audio (Easy) or looping a segment of the audio after initial playback(Hard?)
 /// <summary>
@@ -14,86 +9,101 @@ using UnityEngine.AI;
 /// </summary>
 public class SongManager : MonoBehaviour
 {
-    [SerializeField] public AudioSource audio;
+    [SerializeField] public AudioSource audioSource;
     
     [Tooltip("Number of beats to wait before first displayed beat reaches the center")]
     [SerializeField] int pickupBeats;
 
     [Tooltip("Beats per minute. A 'beat' should be the subdivision in the key signature. (E.g. in 3/8 a beat should be an eight note)")]
-    [SerializeField] public float bpm;
+    [SerializeField] public double bpm;
 
     [Tooltip("Should be the numerator in the key signature")]
     [SerializeField] public int beatsPerMeasure;
 
     [Tooltip("Delay in seconds after Start() for audio to start playing. Should be at least 0.5s to pad software delays")]
-    [SerializeField] public double startDelay = 1f; //in seconds
+    [SerializeField] public double startDelay = 1.0; //in seconds
 
-    [Tooltip("Delay before the first beat of the song plays. Use to account for pickups/intros. Not made to support looped audio.")]
-    [SerializeField] public double firstBeatOffset;
+    double _timePerBeat;
+    public double timePerBeat => _timePerBeat;
 
-    double timePerBeat;
-
-    //Actual dsp time when the song starts
     double _startTime;
+    /// <summary>
+    /// Actual dsp time when the song starts
+    /// </summary>
     public double startTime => _startTime;
-    double _timeInSong;
-    public double timeInSong => _timeInSong;
-    double _beatInSong; //Zero indexed: First beat is beat 0
-    public double beatInSong => _beatInSong;
+
+    /// <summary>
+    /// Time in seconds since song started (includes time in previous loops)
+    /// </summary>
+    public double timeInSong => (AudioSettings.dspTime - _startTime);
+
+  
+    /// <summary>
+    /// Beats since song started (including previous loops). Zero indexed: First beat is beat 0
+    /// </summary>
+    public double beatInSong => timeInSong / _timePerBeat - pickupBeats;
     
     public double beatsPerLoop;
-    double _beatInLoop; //Zero indexed
-    public double beatInLoop => _beatInLoop;
-    double _loopNumber; //Zero indexed
-    public double loopNumber => _loopNumber;
-    
-    void Awake()
-    {
-        if (audio == null)
-        {
-            Debug.LogWarning("Audio source not assigned in Inspector. Searching for one using GetComponent");
-            audio = GetComponent<AudioSource>();
-        }
-    }
 
-    //Song is expected to start on the first beat (pickups are fine).
-    void Start()
-    {
-        timePerBeat = 60f / bpm;
+    /// <summary>
+    /// Beats since the start of the current loop. Zero indexed.
+    /// </summary>
+    public double beatInLoop => beatInSong - (Math.Floor(loopNumber) * beatsPerLoop);
 
-        _startTime = startDelay + AudioSettings.dspTime;
-        audio.PlayScheduled(_startTime);
-    }
-
-    //Calculate position in time/beat, which includes pickups.
-    //Position in measures should be calculated on demand.
-    void Update()
-    {
-        _timeInSong = AudioSettings.dspTime - _startTime - (pickupBeats * timePerBeat);
-        _beatInSong = _timeInSong / timePerBeat;
-        if (audio.loop)
-        {
-            _loopNumber = _beatInSong / beatsPerLoop;
-            _beatInLoop = _beatInSong - (Math.Floor(_loopNumber) * beatsPerLoop);
-        }
-    }
+    /// <summary>
+    /// Number of times the audio clip has looped. Zero indexed: Initial play is loop 0, first repeat is loop 1.
+    /// </summary>
+    public double loopNumber => beatInSong / beatsPerLoop;
 
     /// <summary>
     /// Calculate song position in measures.
-    /// Pickup notes are treated as the first measure = measure 0
     /// </summary>
-    /// <returns>0 indexed fractional position in measures</returns>
-    public double MeasureInSong()
+    public double measureInSong => beatInSong / beatsPerMeasure;
+
+    
+    void Awake()
     {
-        if (_beatInSong <= pickupBeats - 1)
+        if (audioSource == null)
         {
-            //Start partway through measure on a pickup
-            return 1f - (pickupBeats - _beatInSong)/beatsPerMeasure;
-        }
-        else
-        {
-            //Account for added measure from pickup
-            return (_beatInSong - pickupBeats) / beatsPerMeasure + (pickupBeats > 0 ? 1 : 0);
+            Debug.LogWarning("Audio source not assigned in Inspector. Searching for one using GetComponent");
+            audioSource = GetComponent<AudioSource>();
         }
     }
+
+    //Starts audio on start after scheduled time
+    void Start()
+    {
+        _timePerBeat = 60.0 / bpm;
+
+        _startTime = startDelay + AudioSettings.dspTime;
+        audioSource.PlayScheduled(_startTime);
+    }
+
+    void OnEnable()
+    {
+        _timePerBeat = 60.0 / bpm;
+
+        _startTime = startDelay + AudioSettings.dspTime;
+        audioSource.PlayScheduled(_startTime);
+    }
+
+    //Set variables continously for debugging purposes.
+    double _timeInSong;
+    double _beatInSong;   
+    double _beatInLoop;
+    double _loopNumber;
+    double _measureInSong;
+    /*
+    void Update()
+    {
+        _beatInSong = beatInSong;
+        _timeInSong = timeInSong;
+        _measureInSong = measureInSong;
+        if (audio.loop)
+        {
+            _loopNumber = loopNumber;
+            _beatInLoop = beatInLoop;
+        }
+    }
+    */
 }
