@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
+using TMPro;
+using UnityEditor.Build;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
+using UnityEngine.UI;
 
 /// <summary>
 /// Controls visual beat icons
@@ -21,8 +25,25 @@ public class CalibrationBeatManager : MonoBehaviour
     [Tooltip("In the parent canvas's coord space")]
     [SerializeField] public float beatPositionY = 0;
     [SerializeField] public Transform parentPanel;
-    [SerializeField] public Beat beatPrefab;
 
+    //Holds UI element (Input Field TMPro) for manual delay input
+    [SerializeField] TMP_InputField delayField; 
+
+    //Indicator that moves as a function of delay to represent the position where the beat should hit
+    [SerializeField] RectTransform centerIndicator;
+
+    //How long beat highlight lasts after hitting
+    [SerializeField] float indicatorBeatLifetime = 1f;
+    //Prefab of the spawned highlights after hitting
+    [SerializeField] Beat indicatorBeatPrefab;
+    [SerializeField] Beat beatPrefab;
+
+    //How much to change the delay when pressing left or right in seconds
+    [SerializeField] float delayChangePerMovement = 0.5f / 1000f;
+    //How much to change the delay when clicking the +/- button in seconds
+    [SerializeField] float delayChangePerButton = 2.0f / 1000f;
+    float delayChange = 0;
+ 
 
     [Header("Beat Pattern Properties")]
     [Tooltip("In seconds; grace period after beat hits before despawning beat")]
@@ -31,7 +52,7 @@ public class CalibrationBeatManager : MonoBehaviour
     [SerializeField] BeatData[] beatPattern;
     [Tooltip("Length of the pattern in beats. If left unspecified, will assume the last beat is the length of the pattern")]
     [SerializeField] float patternLengthBeats;
-    [SerializeField] double audioDelay = 0.2;
+    public static float audioDelay = 0f;
     [SerializeField] double videoDelay = 0.2;
     SongManager songManager;
     // Position of the next beat to spawn
@@ -45,10 +66,10 @@ public class CalibrationBeatManager : MonoBehaviour
     [SerializeField] private int poolDefaultCapacity = 30;
     [SerializeField] private int maxPoolCapacity = 100;
 
+    bool hideBeat = false;
+
     ObjectPool<Beat> beatObjectPool;
-    Queue<Beat> player1BeatObjects;
-    Queue<Beat> player2BeatObjects;
-    Queue<Beat>[] beatQueues;
+    Queue<Beat> beatQueue;
 
 
     void Awake()
@@ -71,16 +92,22 @@ public class CalibrationBeatManager : MonoBehaviour
         songManager = GetComponent<SongManager>();
 
         beatObjectPool = new ObjectPool<Beat>(CreateBeat, OnGetFromPool, OnReleaseFromPool, OnDestroyPooledObject, true, poolDefaultCapacity, maxPoolCapacity);
-        player1BeatObjects = new Queue<Beat>();
-        player2BeatObjects = new Queue<Beat>();
-        beatQueues = new Queue<Beat>[] {player1BeatObjects, player2BeatObjects};
+        beatQueue = new Queue<Beat>();
     }
 
     void Start()
     {
         patternIndex = 0;
         patternLoop = 0;
-        nextBeat = beatPattern[patternIndex % beatPattern.Length].positionInBeats;
+        nextBeat = beatPattern[0].positionInBeats;
+    }
+
+    void FixedUpdate()
+    {
+        if (!Mathf.Approximately(delayChange, 0))
+        {
+            audioDelay += delayChange;
+        }
     }
 
     void Update()
@@ -88,10 +115,12 @@ public class CalibrationBeatManager : MonoBehaviour
         double now = songManager.beatInSong;
         double lookahead = 1f + screenHalfWidth / beatSpacing;
 
+        SetBaselinePos();
+
         //Spawn the next beat in the pattern if it should be close to the edge of the screen
         while (nextBeat - now <= lookahead)
         {
-            QueueBeat(nextBeat, beatPattern[patternIndex].isPlayer2);
+            QueueBeat(nextBeat);
             if (++patternIndex == beatPattern.Length)
             {
                 patternLoop++;
@@ -100,48 +129,87 @@ public class CalibrationBeatManager : MonoBehaviour
             nextBeat = patternLoop * patternLengthBeats + beatPattern[patternIndex].positionInBeats;
         }
 
-        foreach (Queue<Beat> queue in beatQueues)
-        {    
-            //Update positions of spawned beats
-            foreach(Beat beat in queue)
-            {
-                beat.SetX((float)(beat.positionInBeats + audioDelay - now) * beatSpacing * (beat.isPlayer2 ? 1 : -1)); //spawn player1 beats from the left
-            }
 
-            //TODO: Have judgment class destroy missed beats
-            //  After a waiting for the player to attempt to hit the beat, destroy
-            //  For now, handle here
-            while (queue.Count > 0 && (queue.Peek().positionInBeats - now + audioDelay) < -missedBeatWindow * 2 / songManager.timePerBeat)
-            {
-                beatObjectPool.Release(queue.Dequeue());
-                Debug.Log("Missed");
-            }
+        foreach(Beat beat in beatQueue)
+        {
+            beat.SetX((float)(beat.positionInBeats - now) * -beatSpacing); //spawn player1 beats from the left
         }
 
+        //TODO: Have judgment class destroy missed beats
+        //  After a waiting for the player to attempt to hit the beat, destroy
+        //  For now, handle here
+        while (beatQueue.Count > 0 && (now - beatQueue.Peek().positionInBeats) * beatSpacing > screenHalfWidth)
+        {
+            beatObjectPool.Release(beatQueue.Dequeue());
+        }
     }
 
-    void OnMovePlayer1(InputValue value)
+    /// <summary>
+    /// Sets position of the center basline indicator bar
+    /// </summary>
+    void SetBaselinePos()
     {
-        double error;
-        if (HitBeat(player1BeatObjects, out error))
-        {
-            Debug.Log("Hit: P1");
-        } else
-        {
-            Debug.Log("Misstep: P1");
-        }
-        Debug.Log("Error (ms): " + error * 1000);
+        Vector2 currentPos = centerIndicator.anchoredPosition;
+        double x = audioDelay / songManager.timePerBeat * beatSpacing;
+        centerIndicator.anchoredPosition = new Vector2((float)x, currentPos.y);
+        delayField.text = audioDelay.ToString("F3");
     }
 
-    void OnMovePlayer2(InputValue value)
+    /// <summary>
+    /// Called when delay input field is submitted
+    /// </summary>
+    /// <param name="text"></param>
+    public void OnSubmitDelay(string text)
     {
-        if (HitBeat(player2BeatObjects))
+        audioDelay = float.Parse(text);
+        Debug.Log("Submitted Delay: " + text);
+    }
+
+    /// <summary>
+    /// Toggles visibility of the moving beat
+    /// </summary>
+    public void OnToggleHideBeat(InputValue value)
+    {
+        hideBeat = !hideBeat;
+        Debug.Log("hideBeat: " + hideBeat);
+        beatQueue.Peek().gameObject.GetComponent<Image>().enabled = !hideBeat;
+    }
+
+    void OnHit(InputValue value)
+    {
+        float error;
+        if (HitBeat(beatQueue, out error))
         {
-            Debug.Log("Hit: P2");
+            Debug.Log("Hit: " + (error * 1000) + "ms");
         } else
         {
-            Debug.Log("Misstep: P2");
+            Debug.Log("Misstep: " + (error * 1000) + "ms");
         }
+    }
+
+    /// <summary>
+    /// Called when the user presses left/right or a/d to change the delay (by moving the baseline indicator bar)
+    /// </summary>
+    /// <param name="value"></param>
+    void OnMoveDelay(InputValue value)
+    {
+        delayChange = delayChangePerMovement * value.Get<Vector2>().x;
+    }
+
+    /// <summary>
+    /// Called by the UI button to increase delay 
+    /// </summary>
+    public void OnDelayIncreaseClick()
+    {
+        audioDelay += delayChangePerButton;
+    }
+
+    /// <summary>
+    /// Called by the UI button to decrease delay
+    /// </summary>
+    public void OnDelayDecreaseClick()
+    {
+        audioDelay -= delayChangePerButton;
     }
     
     /// <summary>
@@ -150,15 +218,22 @@ public class CalibrationBeatManager : MonoBehaviour
     /// Does not check if queue is null, but checks if empty.
     /// </summary>
     /// <param name="queue"> Queue of beats to check </param>
-    /// <param name="error"> Holds error, compensating for audioDelay. </param>
-    /// <returns> Whether or not hit was successful </returns>
-    bool HitBeat(Queue<Beat> queue, out double error)
+    /// <param name="error"> Holds error in seconds, compensating for audioDelay. </param>
+    /// <returns> Whether or not hit was successful. If queue is empty, returns false with an error of 0 </returns>
+    bool HitBeat(Queue<Beat> queue, out float error)
     {
+        if (queue.Count <= 0) { error = 0; return false; }
+
         //positive = late, negative = early
-        error = songManager.beatInSong - queue.Peek().positionInBeats - audioDelay;
-        if (queue.Count > 0 && Math.Abs(error) * songManager.timePerBeat <= missedBeatWindow)
+        error = (float)((songManager.beatInSong - queue.Peek().positionInBeats) * songManager.timePerBeat) - audioDelay;
+        
+        Beat calibrationBeat = Instantiate(indicatorBeatPrefab, parentPanel);
+        calibrationBeat.rectTransform.anchoredPosition = queue.Peek().rectTransform.anchoredPosition;
+        Destroy(calibrationBeat.gameObject, indicatorBeatLifetime);
+
+        if (Mathf.Abs(error) <= missedBeatWindow)
         {
-            beatObjectPool.Release(queue.Dequeue());
+            //beatObjectPool.Release(queue.Dequeue());
             return true;
         }
         return false;
@@ -187,21 +262,22 @@ public class CalibrationBeatManager : MonoBehaviour
     /// <summary>
     /// Spawns and adds a beat object to the provided player's queues.
     /// </summary>
-    void QueueBeat(double beatPosition, bool isPlayer2)
+    void QueueBeat(double beatPosition)
     {
-        Queue<Beat> queue = isPlayer2 ? player2BeatObjects : player1BeatObjects;
-        queue.Enqueue(SpawnBeat(beatPosition, isPlayer2));
+        Beat beat = SpawnBeat(beatPosition);
+        beat.gameObject.GetComponent<Image>().enabled = !hideBeat;
+        beatQueue.Enqueue(beat);
     }
 
     /// <summary>
     /// Retrieve a beat from the pool with the specified position and player.
     /// </summary>
-    Beat SpawnBeat(double position, bool isPlayer2)
+    Beat SpawnBeat(double position)
     {
         Beat beat = beatObjectPool.Get();
         beat.rectTransform.anchoredPosition = new Vector2 (0, beatPositionY);
         beat.positionInBeats = position;
-        beat.isPlayer2 = isPlayer2;
+        beat.isPlayer2 = false;
         return beat;
     }
 

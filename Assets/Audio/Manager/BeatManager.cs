@@ -20,7 +20,7 @@ public class BeatManager : MonoBehaviour
 
     [Tooltip("In the parent canvas's coord space")]
     [SerializeField] public float beatPositionY = 0;
-    [SerializeField] public Transform parentPanel;
+    [SerializeField] public RectTransform parentPanel;
     [SerializeField] public Beat beatPrefab;
 
 
@@ -31,8 +31,6 @@ public class BeatManager : MonoBehaviour
     [SerializeField] BeatData[] beatPattern;
     [Tooltip("Length of the pattern in beats. If left unspecified, will assume the last beat is the length of the pattern")]
     [SerializeField] float patternLengthBeats;
-    [SerializeField] double audioDelay = 0.2;
-    [SerializeField] double videoDelay = 0.2;
     SongManager songManager;
     // Position of the next beat to spawn
     double nextBeat;
@@ -105,13 +103,13 @@ public class BeatManager : MonoBehaviour
             //Update positions of spawned beats
             foreach(Beat beat in queue)
             {
-                beat.SetX((float)(beat.positionInBeats + audioDelay - now) * beatSpacing * (beat.isPlayer2 ? 1 : -1)); //spawn player1 beats from the left
+                beat.SetX((float)(beat.positionInBeats + CalibrationBeatManager.audioDelay - now) * beatSpacing * (beat.isPlayer2 ? 1 : -1)); //spawn player1 beats from the left
             }
 
             //TODO: Have judgment class destroy missed beats
             //  After a waiting for the player to attempt to hit the beat, destroy
             //  For now, handle here
-            while (queue.Count > 0 && (queue.Peek().positionInBeats - now + audioDelay) < -missedBeatWindow * 2 / songManager.timePerBeat)
+            while (queue.Count > 0 && (queue.Peek().positionInBeats - now + CalibrationBeatManager.audioDelay) < -missedBeatWindow * 2 / songManager.timePerBeat)
             {
                 beatObjectPool.Release(queue.Dequeue());
                 Debug.Log("Missed");
@@ -154,8 +152,9 @@ public class BeatManager : MonoBehaviour
     /// <returns> Whether or not hit was successful </returns>
     bool HitBeat(Queue<Beat> queue, out double error)
     {
+        Debug.Log(CalibrationBeatManager.audioDelay);
         //positive = late, negative = early
-        error = songManager.beatInSong - queue.Peek().positionInBeats - audioDelay;
+        error = songManager.beatInSong - queue.Peek().positionInBeats - CalibrationBeatManager.audioDelay;
         if (queue.Count > 0 && Math.Abs(error) * songManager.timePerBeat <= missedBeatWindow)
         {
             beatObjectPool.Release(queue.Dequeue());
@@ -174,7 +173,7 @@ public class BeatManager : MonoBehaviour
     bool HitBeat(Queue<Beat> queue)
     {
         //positive = late, negative = early
-        double error = songManager.beatInSong - queue.Peek().positionInBeats - audioDelay;
+        double error = songManager.beatInSong - queue.Peek().positionInBeats - CalibrationBeatManager.audioDelay;
         if (queue.Count > 0 && Math.Abs(error) * songManager.timePerBeat <= missedBeatWindow)
         {
             beatObjectPool.Release(queue.Dequeue());

@@ -19,7 +19,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &65725082169653318
 Transform:
   m_ObjectHideFlags: 0
@@ -51,7 +51,7 @@ MonoBehaviour:
   pickupBeats: 4
   bpm: 120
   beatsPerMeasure: 4
-  startDelay: 2
+  startDelay: 0.5
   beatsPerLoop: 8
 --- !u!114 &2695938281756041104
 MonoBehaviour:
@@ -65,16 +65,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01c14c93b04484cada65c50d881fcd00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BeatManager
-  beatSpacing: 100
-  screenHalfWidth: 1000
-  beatPositionY: 0
+  beatSpacing: 200
+  screenHalfWidth: 960
+  beatPositionY: -400
   parentPanel: {fileID: 0}
   beatPrefab: {fileID: 1832842443035105614, guid: a15cfe5d448234dcab74788cbdc17533, type: 3}
-  missedBeatWindow: 20
-  beatPattern: []
+  missedBeatWindow: 0.15
+  beatPattern:
+  - positionInBeats: 0
+    isPlayer2: 0
+  - positionInBeats: 1
+    isPlayer2: 1
+  - positionInBeats: 2
+    isPlayer2: 1
+  - positionInBeats: 3
+    isPlayer2: 1
   patternLengthBeats: 4
   poolDefaultCapacity: 30
-  maxPoolCapacity: 200
+  maxPoolCapacity: 100
 --- !u!82 &4945594516828591320
 AudioSource:
   m_ObjectHideFlags: 0
