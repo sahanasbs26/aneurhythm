@@ -32,10 +32,17 @@ public class SongManager : MonoBehaviour
     /// </summary>
     public double startTime => _startTime;
 
+    double _pauseTime;
+
+    double _pauseDuration = 0;
+    public double pauseDuration => _pauseDuration;
+
     /// <summary>
     /// Time in seconds since song started (includes time in previous loops)
     /// </summary>
-    public double timeInSong => (AudioSettings.dspTime - _startTime);
+    public double timeInSong => AudioSettings.dspTime - _startTime - _pauseDuration;
+
+    public double timeInLoop => timeInSong - Math.Floor(loopNumber) * beatsPerLoop * timePerBeat;
 
   
     /// <summary>
@@ -81,10 +88,32 @@ public class SongManager : MonoBehaviour
 
     void OnEnable()
     {
-        _timePerBeat = 60.0 / bpm;
+        if (_pauseTime != 0) 
+        { 
+            OnResume(); 
+        }
+        else 
+        {         
+            _startTime = startDelay + AudioSettings.dspTime;
+            audioSource.PlayScheduled(_startTime);
+        }
+    }
 
-        _startTime = startDelay + AudioSettings.dspTime;
-        audioSource.PlayScheduled(_startTime);
+    void OnDisable()
+    {
+        OnPause();
+    }
+
+    void OnPause()
+    {
+        _pauseTime = AudioSettings.dspTime;
+        audioSource.Pause();
+    }
+
+    void OnResume()
+    {
+        _pauseDuration += AudioSettings.dspTime - _pauseTime;
+        audioSource.UnPause();
     }
 
     //Set variables continously for debugging purposes.

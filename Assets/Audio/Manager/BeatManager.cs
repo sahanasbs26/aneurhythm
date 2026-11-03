@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Pool;
+using UnityEngine.UI;
 
 /// <summary>
 /// Controls visual beat icons
@@ -12,26 +14,23 @@ using UnityEngine.Pool;
 public class BeatManager : MonoBehaviour
 {
     [Header("UI Settings")]
-    [Tooltip("The visual spacing between one beat")]
-    [SerializeField] public float beatSpacing = 100;
-
-    [Tooltip("In the parent canvas's coord space; the width from the center to the edge of the screen")]
-    [SerializeField] public float screenHalfWidth = 500;
-
-    [Tooltip("In the parent canvas's coord space")]
-    [SerializeField] public float beatPositionY = 0;
-    [SerializeField] public RectTransform parentPanel;
-    [SerializeField] public Beat beatPrefab;
+    [Tooltip("The visual spacing between one beat as a fraction of the distance between its starting and ending points")]
+    [SerializeField] public float beatSpacingFraction = 0.2f;
+    [SerializeField] protected Lane player1;
+    [SerializeField] protected Lane player2;
+    protected Lane[] lanes;
 
 
     [Header("Beat Pattern Properties")]
-    [Tooltip("In seconds; grace period after beat hits before despawning beat")]
-    public double missedBeatWindow = 0.2;
+    [Tooltip("In seconds; period after beat hits before despawning beat")]
+    public double beatDespawnWindow = 0.2;
+    [Tooltip("In seconds; window to hit the beat")]
+    public double beatHitWindow = 0.15;
     [Tooltip("Positions of the spawned beats in terms of the beat in the song. Will loop at the end. Assumes beats are listed in chronological order.")]
     [SerializeField] BeatData[] beatPattern;
     [Tooltip("Length of the pattern in beats. If left unspecified, will assume the last beat is the length of the pattern")]
     [SerializeField] float patternLengthBeats;
-    SongManager songManager;
+    protected SongManager songManager;
     // Position of the next beat to spawn
     double nextBeat;
     // Index in the beat pattern of the next beat to spawn
@@ -39,39 +38,28 @@ public class BeatManager : MonoBehaviour
     // How many times the beat patter nhas looped
     int patternLoop;
 
-    [Header("Object Pooling Settings")]
-    [SerializeField] private int poolDefaultCapacity = 30;
-    [SerializeField] private int maxPoolCapacity = 100;
-
-    ObjectPool<Beat> beatObjectPool;
-    Queue<Beat> player1BeatObjects;
-    Queue<Beat> player2BeatObjects;
-    Queue<Beat>[] beatQueues;
-
-
     void Awake()
     {
         if (beatPattern == null || beatPattern.Length == 0) 
         { 
             Debug.LogError("Error: beatPattern is empty or unspecified");
             enabled = false; 
+            return;
         }
         if (patternLengthBeats < 0.05)
         {
             Debug.LogError("Error: patternLengthBeats is too small (<0.05)");
             enabled = false;
+            return;
         }
-        if (beatPattern[beatPattern.Length - 1].positionInBeats < patternLengthBeats)
+        if (beatPattern[beatPattern.Length - 1].positionInBeats > patternLengthBeats)
         {
             Debug.LogWarning("Warning: provided patternLengthBeats is not equal to the final beat of beatPattern");
+            return;
         }
-
         songManager = GetComponent<SongManager>();
-
-        beatObjectPool = new ObjectPool<Beat>(CreateBeat, OnGetFromPool, OnReleaseFromPool, OnDestroyPooledObject, true, poolDefaultCapacity, maxPoolCapacity);
-        player1BeatObjects = new Queue<Beat>();
-        player2BeatObjects = new Queue<Beat>();
-        beatQueues = new Queue<Beat>[] {player1BeatObjects, player2BeatObjects};
+        lanes = new Lane[] {player1, player2};
+        foreach (Lane lane in lanes) lane.beatSpacingFraction = beatSpacingFraction;
     }
 
     void Start()
@@ -84,12 +72,13 @@ public class BeatManager : MonoBehaviour
     void Update()
     {
         double now = songManager.beatInSong;
-        double lookahead = 1f + screenHalfWidth / beatSpacing;
+        double lookahead = 1 / beatSpacingFraction + beatSpacingFraction;
 
         //Spawn the next beat in the pattern if it should be close to the edge of the screen
         while (nextBeat - now <= lookahead)
         {
-            QueueBeat(nextBeat, beatPattern[patternIndex].isPlayer2);
+            Lane player = beatPattern[patternIndex].isPlayer2 ? player2 : player1;
+            player.Enqueue(nextBeat);
             if (++patternIndex == beatPattern.Length)
             {
                 patternLoop++;
@@ -98,30 +87,33 @@ public class BeatManager : MonoBehaviour
             nextBeat = patternLoop * patternLengthBeats + beatPattern[patternIndex].positionInBeats;
         }
 
-        foreach (Queue<Beat> queue in beatQueues)
+        foreach (Lane lane in lanes)
         {    
             //Update positions of spawned beats
-            foreach(Beat beat in queue)
-            {
-                beat.SetX((float)(beat.positionInBeats + CalibrationBeatManager.audioDelay - now) * beatSpacing * (beat.isPlayer2 ? 1 : -1)); //spawn player1 beats from the left
-            }
+            lane.UpdatePos(now);
 
             //TODO: Have judgment class destroy missed beats
             //  After a waiting for the player to attempt to hit the beat, destroy
             //  For now, handle here
-            while (queue.Count > 0 && (queue.Peek().positionInBeats - now + CalibrationBeatManager.audioDelay) < -missedBeatWindow * 2 / songManager.timePerBeat)
+            while (!lane.IsEmpty() && (now - lane.Peek().positionInBeats) * songManager.timePerBeat > (beatDespawnWindow + CalibrationBeatManager.audioDelay))
             {
-                beatObjectPool.Release(queue.Dequeue());
+                lane.Dequeue();
                 Debug.Log("Missed");
             }
         }
 
+        OnUpdate();
     }
+    
+    /// <summary>
+    /// To be overridden by a child class, executed at the end of Update() in BeatManager()
+    /// </summary>
+    protected virtual void OnUpdate() {}
 
-    void OnMovePlayer1(InputValue value)
+    protected void OnMovePlayer1(InputValue value)
     {
         double error;
-        if (HitBeat(player1BeatObjects, out error))
+        if (HitBeat(player1, out error))
         {
             Debug.Log("Hit: P1");
         } else
@@ -133,13 +125,15 @@ public class BeatManager : MonoBehaviour
 
     void OnMovePlayer2(InputValue value)
     {
-        if (HitBeat(player2BeatObjects))
+        double error;
+        if (HitBeat(player2, out error))
         {
             Debug.Log("Hit: P2");
         } else
         {
             Debug.Log("Misstep: P2");
         }
+        Debug.Log("Error (ms): " + error * 1000);
     }
     
     /// <summary>
@@ -147,84 +141,40 @@ public class BeatManager : MonoBehaviour
     /// If it has played, despawn beat and return true. Otherwise return false.
     /// Does not check if queue is null, but checks if empty.
     /// </summary>
-    /// <param name="queue"> Queue of beats to check </param>
-    /// <param name="error"> Holds error, compensating for audioDelay. </param>
+    /// <param name="lane"> Lane of beats to check </param>
     /// <returns> Whether or not hit was successful </returns>
-    bool HitBeat(Queue<Beat> queue, out double error)
+    bool HitBeat(Lane lane, out double error)
     {
-        Debug.Log(CalibrationBeatManager.audioDelay);
+        if (lane.IsEmpty()) {error = 0; return false;};
+        error = NearestBeatError(lane);
         //positive = late, negative = early
-        error = songManager.beatInSong - queue.Peek().positionInBeats - CalibrationBeatManager.audioDelay;
-        if (queue.Count > 0 && Math.Abs(error) * songManager.timePerBeat <= missedBeatWindow)
+        if (error <= beatHitWindow)
         {
-            beatObjectPool.Release(queue.Dequeue());
+            lane.Dequeue();
             return true;
         }
         return false;
     }
 
     /// <summary>
-    /// Checks if the next beat in the queue has played within missedBeatWindow. 
-    /// If it has played, despawn beat and return true. Otherwise return false.
-    /// Does not check if queue is null, but checks if empty.
+    /// Returns the error of the nearest beat in the lane in seconds.
+    /// Caller should check if the lane is null.
     /// </summary>
-    /// <param name="queue"> Queue of beats to check </param>
-    /// <returns> Whether or not hit was successful </returns>
-    bool HitBeat(Queue<Beat> queue)
+    /// <param name="lane">Searches beats in this lane</param>
+    /// <returns>Error in seconds</returns>
+    public float NearestBeatError(Lane lane)
     {
-        //positive = late, negative = early
-        double error = songManager.beatInSong - queue.Peek().positionInBeats - CalibrationBeatManager.audioDelay;
-        if (queue.Count > 0 && Math.Abs(error) * songManager.timePerBeat <= missedBeatWindow)
-        {
-            beatObjectPool.Release(queue.Dequeue());
-            return true;
-        }
-        return false;
-    }
-    
-
-    /// <summary>
-    /// Spawns and adds a beat object to the provided player's queues.
-    /// </summary>
-    void QueueBeat(double beatPosition, bool isPlayer2)
-    {
-        Queue<Beat> queue = isPlayer2 ? player2BeatObjects : player1BeatObjects;
-        queue.Enqueue(SpawnBeat(beatPosition, isPlayer2));
+        return BeatError(lane.Nearest(songManager.beatInSong).positionInBeats);
     }
 
     /// <summary>
-    /// Retrieve a beat from the pool with the specified position and player.
+    /// Returns the error of the specified position in seconds.
+    /// Accounts for audio delay
     /// </summary>
-    Beat SpawnBeat(double position, bool isPlayer2)
+    /// <param name="beatPosition">Position to calculate error of</param>
+    /// <returns>Error in seconds</returns>
+    public float BeatError(double beatPosition)
     {
-        Beat beat = beatObjectPool.Get();
-        beat.rectTransform.anchoredPosition = new Vector2 (0, beatPositionY);
-        beat.positionInBeats = position;
-        beat.isPlayer2 = isPlayer2;
-        return beat;
-    }
-
-    /// <summary>
-    /// Beat's data should be assigned after it is gotten from the pool
-    /// </summary>
-    Beat CreateBeat()
-    {
-        Beat beat = Instantiate(beatPrefab, parentPanel);
-        return beat;
-    }
-
-    void OnGetFromPool(Beat beat)
-    {
-        beat.gameObject.SetActive(true);
-    }
-
-    void OnReleaseFromPool(Beat beat)
-    {
-        beat.gameObject.SetActive(false);
-    }
-
-    void OnDestroyPooledObject(Beat beat)
-    {
-        Destroy(beat.gameObject);
+        return (float)((songManager.beatInSong - beatPosition) * songManager.timePerBeat - CalibrationBeatManager.audioDelay);
     }
 }

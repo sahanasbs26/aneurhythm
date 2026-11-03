@@ -1877,6 +1877,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 795214866526124082, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: parent
+      value: 
+      objectReference: {fileID: 4919296962570804003}
+    - target: {fileID: 795214866526124082, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: endPos.x
+      value: -960
+      objectReference: {fileID: 0}
+    - target: {fileID: 795214866526124082, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: endPos.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 795214866526124082, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: startPos.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2099304517688884663, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
       propertyPath: m_Name
       value: SongManager
@@ -1921,6 +1937,22 @@ PrefabInstance:
       propertyPath: m_Resource
       value: 
       objectReference: {fileID: 8300000, guid: 66dc94506856c4510809cf3068354792, type: 3}
+    - target: {fileID: 8646600426938879317, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: parent
+      value: 
+      objectReference: {fileID: 4919296962570804003}
+    - target: {fileID: 8646600426938879317, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: endPos.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8646600426938879317, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: endPos.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8646600426938879317, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+      propertyPath: startPos.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2695938281756041104, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
     m_RemovedGameObjects: []
@@ -1930,6 +1962,17 @@ PrefabInstance:
       insertIndex: 2
       addedObject: {fileID: 5328900520544368509}
   m_SourcePrefab: {fileID: 100100000, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+--- !u!114 &3342403698137139299 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8646600426938879317, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+  m_PrefabInstance: {fileID: 6457175821437388086}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec4985a2586ef4828bd15998468dc679, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lane
 --- !u!1 &4953472938724800641 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2099304517688884663, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
@@ -1947,25 +1990,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9655f643ea1f5421c9c3374fe38a15cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CalibrationBeatManager
-  beatSpacing: 480
-  screenHalfWidth: 960
-  beatPositionY: 0
-  parentPanel: {fileID: 4919296962570804003}
-  delayField: {fileID: 4987569313649148083}
-  centerIndicator: {fileID: 8852914668690739730}
-  indicatorBeatLifetime: 1.5
-  indicatorBeatPrefab: {fileID: 4473521667469235571, guid: cbc80071921044912b78df5ec7f4ebe7, type: 3}
-  beatPrefab: {fileID: 1832842443035105614, guid: a15cfe5d448234dcab74788cbdc17533, type: 3}
-  delayChangePerMovement: 0.0005
-  delayChangePerButton: 0.002
-  missedBeatWindow: 0.2
+  beatSpacingFraction: 0.25
+  player1: {fileID: 3342403698137139299}
+  player2: {fileID: 5950755423691898116}
+  beatDespawnWindow: 2
+  beatHitWindow: 0.15
   beatPattern:
   - positionInBeats: 0
     isPlayer2: 0
   patternLengthBeats: 4
-  videoDelay: 0.2
-  poolDefaultCapacity: 2
-  maxPoolCapacity: 100
+  delayField: {fileID: 4987569313649148083}
+  centerIndicator: {fileID: 8852914668690739730}
+  indicatorBeatLifetime: 1.5
+  indicatorBeatPrefab: {fileID: 4473521667469235571, guid: cbc80071921044912b78df5ec7f4ebe7, type: 3}
+  delayChangePerMovement: 0.0005
+  delayChangePerButton: 0.002
+--- !u!114 &5950755423691898116 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 795214866526124082, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
+  m_PrefabInstance: {fileID: 6457175821437388086}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec4985a2586ef4828bd15998468dc679, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lane
 --- !u!4 &6446339571394968944 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 65725082169653318, guid: 6e1b34e22c9654e8b8ec32bf6b8612a8, type: 3}
