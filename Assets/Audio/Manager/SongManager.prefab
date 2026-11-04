@@ -53,7 +53,8 @@ MonoBehaviour:
   pickupBeats: 4
   bpm: 120
   beatsPerMeasure: 4
-  startDelay: 0.5
+  startDelay: 1
+  resumeDelay: 1
   beatsPerLoop: 8
 --- !u!114 &2695938281756041104
 MonoBehaviour:
@@ -67,10 +68,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01c14c93b04484cada65c50d881fcd00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BeatManager
-  beatSpacing: 0.1
+  beatSpacingFraction: 0.2
   player1: {fileID: 8646600426938879317}
   player2: {fileID: 795214866526124082}
-  missedBeatWindow: 0.1
+  beatDespawnWindow: 0.15
+  beatHitWindow: 0.15
   beatPattern:
   - positionInBeats: 0
     isPlayer2: 0
@@ -205,7 +207,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
-  m_DefaultActionMap: TwoPlayerInput
+  m_DefaultActionMap: TwoPlayer
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
 --- !u!1001 &2382657468226666274
@@ -217,8 +219,16 @@ PrefabInstance:
     m_TransformParent: {fileID: 65725082169653318}
     m_Modifications:
     - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
+      propertyPath: endPos.y
+      value: -270
+      objectReference: {fileID: 0}
+    - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
       propertyPath: startPos.x
       value: 960
+      objectReference: {fileID: 0}
+    - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
+      propertyPath: startPos.y
+      value: -270
       objectReference: {fileID: 0}
     - target: {fileID: 3316451354382144110, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
       propertyPath: m_LocalPosition.x
@@ -294,8 +304,16 @@ PrefabInstance:
     m_TransformParent: {fileID: 65725082169653318}
     m_Modifications:
     - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
+      propertyPath: endPos.y
+      value: -270
+      objectReference: {fileID: 0}
+    - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
       propertyPath: startPos.x
       value: -960
+      objectReference: {fileID: 0}
+    - target: {fileID: 3033682198188443408, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
+      propertyPath: startPos.y
+      value: -270
       objectReference: {fileID: 0}
     - target: {fileID: 3316451354382144110, guid: a66f04d635c834e079e74f04c96896bb, type: 3}
       propertyPath: m_LocalPosition.x

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 //TODO: Add support for looped audio (Easy) or looping a segment of the audio after initial playback(Hard?)
@@ -22,6 +23,7 @@ public class SongManager : MonoBehaviour
 
     [Tooltip("Delay in seconds after Start() for audio to start playing. Should be at least 0.5s to pad software delays")]
     [SerializeField] public double startDelay = 1.0; //in seconds
+    [SerializeField] public double resumeDelay = 1.0;
 
     double _timePerBeat;
     public double timePerBeat => _timePerBeat;
@@ -32,15 +34,17 @@ public class SongManager : MonoBehaviour
     /// </summary>
     public double startTime => _startTime;
 
-    double _pauseTime;
+    double pauseTime = double.NegativeInfinity; //Use as floor for the timeInSong, negative so beats don't populate on start
+    double _pauseDspTime;
+    float _pauseSongTime;
 
     double _pauseDuration = 0;
-    public double pauseDuration => _pauseDuration;
+    bool paused = false;
 
     /// <summary>
     /// Time in seconds since song started (includes time in previous loops)
     /// </summary>
-    public double timeInSong => AudioSettings.dspTime - _startTime - _pauseDuration;
+    public double timeInSong => paused ? pauseTime : Math.Max(AudioSettings.dspTime - _pauseDuration - _startTime, pauseTime);
 
     public double timeInLoop => timeInSong - Math.Floor(loopNumber) * beatsPerLoop * timePerBeat;
 
@@ -86,35 +90,26 @@ public class SongManager : MonoBehaviour
         audioSource.PlayScheduled(_startTime);
     }
 
-    void OnEnable()
+    public void OnPause()
     {
-        if (_pauseTime != 0) 
-        { 
-            OnResume(); 
-        }
-        else 
-        {         
-            _startTime = startDelay + AudioSettings.dspTime;
-            audioSource.PlayScheduled(_startTime);
-        }
+        if (paused) return;
+        pauseTime = timeInSong;
+        _pauseDspTime = AudioSettings.dspTime;
+        _pauseSongTime = audioSource.time;
+        audioSource.Stop();
+        paused = true;
     }
 
-    void OnDisable()
+    public void OnResume()
     {
-        OnPause();
+        if (!paused) return;
+        double scheduledResumeTime = AudioSettings.dspTime + resumeDelay;
+        _pauseDuration += scheduledResumeTime - _pauseDspTime;
+        audioSource.time = (float)Math.Max(pauseTime, 0) % audioSource.clip.length;
+        audioSource.PlayScheduled(scheduledResumeTime + (pauseTime < 0 ? -pauseTime : 0)); //Add back time if paused before song started
+        paused = false;
     }
 
-    void OnPause()
-    {
-        _pauseTime = AudioSettings.dspTime;
-        audioSource.Pause();
-    }
-
-    void OnResume()
-    {
-        _pauseDuration += AudioSettings.dspTime - _pauseTime;
-        audioSource.UnPause();
-    }
 
     //Set variables continously for debugging purposes.
     double _timeInSong;

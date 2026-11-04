@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Reflection.Emit;
+using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Pool;
-using UnityEngine.UI;
 
 /// <summary>
 /// Controls visual beat icons
@@ -95,7 +92,7 @@ public class BeatManager : MonoBehaviour
             //TODO: Have judgment class destroy missed beats
             //  After a waiting for the player to attempt to hit the beat, destroy
             //  For now, handle here
-            while (!lane.IsEmpty() && (now - lane.Peek().positionInBeats) * songManager.timePerBeat > (beatDespawnWindow + CalibrationBeatManager.audioDelay))
+            while (!lane.IsEmpty() && BeatError(lane.Peek().positionInBeats) > beatDespawnWindow)
             {
                 lane.Dequeue();
                 Debug.Log("Missed");
@@ -112,7 +109,7 @@ public class BeatManager : MonoBehaviour
 
     protected void OnMovePlayer1(InputValue value)
     {
-        double error;
+        float error;
         if (HitBeat(player1, out error))
         {
             Debug.Log("Hit: P1");
@@ -125,7 +122,7 @@ public class BeatManager : MonoBehaviour
 
     void OnMovePlayer2(InputValue value)
     {
-        double error;
+        float error;
         if (HitBeat(player2, out error))
         {
             Debug.Log("Hit: P2");
@@ -143,12 +140,12 @@ public class BeatManager : MonoBehaviour
     /// </summary>
     /// <param name="lane"> Lane of beats to check </param>
     /// <returns> Whether or not hit was successful </returns>
-    bool HitBeat(Lane lane, out double error)
+    bool HitBeat(Lane lane, out float error)
     {
         if (lane.IsEmpty()) {error = 0; return false;};
         error = NearestBeatError(lane);
         //positive = late, negative = early
-        if (error <= beatHitWindow)
+        if (Mathf.Abs(error) <= beatHitWindow)
         {
             lane.Dequeue();
             return true;
