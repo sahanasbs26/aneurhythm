@@ -1,3 +1,4 @@
+using System;
 using System.Reflection.Emit;
 using UnityEditor.PackageManager;
 using UnityEngine;
@@ -66,10 +67,13 @@ public class BeatManager : MonoBehaviour
         nextBeat = beatPattern[patternIndex % beatPattern.Length].positionInBeats;
     }
 
+    double delay;
     void Update()
     {
+        delay = CalibrationBeatManager.audioDelay;
+        double delayBeats = CalibrationBeatManager.audioDelay / songManager.timePerBeat;
         double now = songManager.beatInSong;
-        double lookahead = 1 / beatSpacingFraction + beatSpacingFraction;
+        double lookahead = 1 / beatSpacingFraction + beatSpacingFraction + Math.Max(0, -delayBeats);
 
         //Spawn the next beat in the pattern if it should be close to the edge of the screen
         while (nextBeat - now <= lookahead)
@@ -87,7 +91,7 @@ public class BeatManager : MonoBehaviour
         foreach (Lane lane in lanes)
         {    
             //Update positions of spawned beats
-            lane.UpdatePos(now);
+            lane.UpdatePos(now, delayBeats);
 
             //TODO: Have judgment class destroy missed beats
             //  After a waiting for the player to attempt to hit the beat, destroy

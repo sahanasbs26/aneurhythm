@@ -23,6 +23,8 @@ public class CalibrationBeatManager : BeatManager
 
     [SerializeField] public static float audioDelay = 0;
 
+    float inputAudioDelay = 0;
+
     //How much to change the delay when pressing left or right in seconds
     [SerializeField] float delayChangePerMovement = 0.5f / 1000f;
     //How much to change the delay when clicking the +/- button in seconds
@@ -34,8 +36,19 @@ public class CalibrationBeatManager : BeatManager
     {
         if (!Mathf.Approximately(delayChange, 0))
         {
-            audioDelay += delayChange;
+            inputAudioDelay += delayChange;
         }
+    }
+
+    void OnEnable()
+    {
+        inputAudioDelay = audioDelay;
+        audioDelay = 0; // Show the beat playing with 0 delay to calibrate (otherwise beat is relative to previous) calibration
+    }
+
+    void OnDisable()
+    {
+        audioDelay = inputAudioDelay;
     }
 
     protected override void OnUpdate()
@@ -49,9 +62,9 @@ public class CalibrationBeatManager : BeatManager
     void SetBaselinePos()
     {
         Vector2 currentPos = centerIndicator.anchoredPosition;
-        double x = audioDelay / songManager.timePerBeat * player1.GetRawSpacing();
+        double x = inputAudioDelay / songManager.timePerBeat * player1.GetRawSpacing();
         centerIndicator.anchoredPosition = new Vector2((float)x, currentPos.y);
-        delayField.text = audioDelay.ToString("F3");
+        delayField.text = inputAudioDelay.ToString("F3");
     }
 
     void OnHit(InputValue value)
@@ -71,7 +84,7 @@ public class CalibrationBeatManager : BeatManager
     /// <param name="text"></param>
     public void OnSubmitDelay(string text)
     {
-        audioDelay = float.Parse(text);
+        inputAudioDelay = float.Parse(text);
         Debug.Log("Submitted Delay: " + text);
     }
 
@@ -99,7 +112,7 @@ public class CalibrationBeatManager : BeatManager
     /// </summary>
     public void OnDelayIncreaseClick()
     {
-        audioDelay += delayChangePerButton;
+        inputAudioDelay += delayChangePerButton;
     }
 
     /// <summary>
@@ -107,6 +120,6 @@ public class CalibrationBeatManager : BeatManager
     /// </summary>
     public void OnDelayDecreaseClick()
     {
-        audioDelay -= delayChangePerButton;
+        inputAudioDelay -= delayChangePerButton;
     }
 }

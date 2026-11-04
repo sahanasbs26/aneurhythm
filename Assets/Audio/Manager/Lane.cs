@@ -85,14 +85,14 @@ public class Lane : MonoBehaviour
     /// Moves beat along its track from startPos to endPos.
     /// </summary>
     /// <param name="currentBeat">Current time in beats</param>
-    public void UpdatePos(double currentBeat)
+    public void UpdatePos(double currentBeat, double audioDelayBeats)
     {
         foreach (Beat beat in queue)
         {
             beat.rectTransform.anchoredPosition = 
                 endPos + 
                 (startPos - endPos) * 
-                ((float)(beat.positionInBeats + CalibrationBeatManager.audioDelay - currentBeat) * beatSpacingFraction);
+                ((float)(beat.positionInBeats + audioDelayBeats - currentBeat) * beatSpacingFraction);
         }
     }
 
