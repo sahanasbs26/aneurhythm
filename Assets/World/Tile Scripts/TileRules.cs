@@ -8,7 +8,7 @@ using UnityEngine;
 /// "Surfacing" means a player can walk on the periphery of the tile (e.g. on top).
 /// "Entering" means a player can walk into this tile position.
 /// </summary>
-[CreateAssetMenu(fileName = "Tile", menuName = "Scriptable Objects/Tile")]
+[CreateAssetMenu(fileName = "TileRule", menuName = "Scriptable Objects/TileRule")]
 public class TileRules : ScriptableObject
 {
     [Tooltip("Faces a player can stand on")]
