@@ -12,7 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e191faeade8544a0ab49a1dd5d4fd20a, type: 3}
   m_Name: GridData
   m_EditorClassIdentifier: Assembly-CSharp-Editor::GridData
-  prefabName: testPrefab
-  height: 10
-  baseGridPrefab: {fileID: 6089320654232181582, guid: 31b601209f43541a39e55e76b0ce4656, type: 3}
-  baseLevelPrefab: {fileID: 5931096447476137719, guid: 87f55cda1eb384c8a9a5e827f1888feb, type: 3}
+  prefabName: testGrid2
+  height: 20
