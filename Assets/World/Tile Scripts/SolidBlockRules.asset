@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SolidBlockRules
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
   _surfaceableDirections: 16
-  _exitDirections: 15
+  _exitDirections: 0
   _enterDirections: 0
   _requiredSurfaceDirection: 0
   _mountPosition:

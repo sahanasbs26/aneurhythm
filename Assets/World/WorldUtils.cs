@@ -11,7 +11,7 @@ public class WorldUtils
     /// </summary>
     public static Vector3 ArrayToWorldCoordinates(Vector3 arrayCoordinates, float scaleFactor = isometricToWorldScaleFactor)
     {
-        return new Vector3(arrayCoordinates.y, arrayCoordinates.z, -arrayCoordinates.x);
+        return new Vector3(arrayCoordinates.y, arrayCoordinates.z, arrayCoordinates.x);
     }
 
     /// <summary>
@@ -21,7 +21,7 @@ public class WorldUtils
     /// </summary>
     public static Vector3 WorldToArrayCoordinates(Vector3 worldCoordinates, float scaleFactor = isometricToWorldScaleFactor)
     {
-        return new Vector3(-worldCoordinates.z, worldCoordinates.x, worldCoordinates.y);
+        return new Vector3(worldCoordinates.z, worldCoordinates.x, worldCoordinates.y);
     }
     
 }

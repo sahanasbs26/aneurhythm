@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
 /// <summary>
@@ -11,6 +12,9 @@ public class ArrayManager : MonoBehaviour
 
     [SerializeField]
     Tilemap[] tilemapLevels;
+
+    [SerializeField] PlayerController player1;
+    [SerializeField] PlayerController player2;
 
     GameplayTile[,,] array;
 
@@ -39,6 +43,7 @@ public class ArrayManager : MonoBehaviour
         foreach (Tilemap tilemap in tilemapLevels)
         {
             GameplayTile[] tiles = tilemap.GetComponentsInChildren<GameplayTile>();
+            Debug.Log("Found tilemap: " + tilemap.name + " with " + tiles.Length + " tiles");
             foreach (GameplayTile tile in tiles)
             {
                 Vector3 rawPos = WorldUtils.WorldToArrayCoordinates(tile.transform.position);
@@ -54,35 +59,43 @@ public class ArrayManager : MonoBehaviour
     /// </summary>
     /// <param name="direction">Direction the player will move in, in array space</param>
     /// <param name="currentPos">Position of the player, in array space</param>
-    /// <param name="groundDirection">The direction of the plane the player is standing on, e.g. "U" if the player is standing on top of a block</param>
+    /// <param name="groundPlane">The direction of the plane the player is standing on, e.g. "U" if the player is standing on top of a block</param>
     /// <returns></returns>
-    public bool CanMove(Vector3Int direction, Vector3Int currentPos, DirectionMask groundDirection)
+    public bool CanMove(Vector3Int targetPos, Vector3Int currentPos, Vector3 direction, DirectionMask groundPlane)
     {
         DirectionMask directionMask = DirectionMaskUtils.VectorToMaskStrict(direction);
-        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
-        bool canExit = current == null || current.rules.CanExitTowards(directionMask);
-        Vector3Int targetPos = currentPos + direction;
-        GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
+        Vector3Int groundingTargetPos = targetPos - DirectionMaskUtils.MaskToVector(groundPlane);
+        Debug.Log(groundingTargetPos + ", World: " + WorldUtils.ArrayToWorldCoordinates(groundingTargetPos));
 
-        GameplayTile groundingTarget;
-        if (target == null)
-        {
-            //If moving to an empty tile, check for a standable block in the direction the player wants to move in
-            Vector3Int groundingTargetPos = targetPos - DirectionMaskUtils.MaskToVector(groundDirection);
-            groundingTarget = array[groundingTargetPos.x, groundingTargetPos.y, groundingTargetPos.z];
-            return canExit && groundingTarget != null && (groundingTarget.rules.surfaceableDirections & groundDirection) != 0;
-        } 
-        else if (
-            //If moving onto a "wall" tile, ensure that the tile's valid standable planes match the player's current plane
-            target != null && target.rules.requiredSurfaceDirection != 0 &&
-            (groundDirection & DirectionMaskUtils.ReverseMask(target.rules.requiredSurfaceDirection)) == 0)
-        {
-            return false;
-        } 
-        else
-        {
-            //If standable planes match/don't apply, check enter/exit conditions
-            return canExit && target != null && target.rules.CanEnterFrom(directionMask);
-        }
+        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
+        GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
+        GameplayTile groundingTarget = array[groundingTargetPos.x, groundingTargetPos.y, groundingTargetPos.z];
+        Debug.Log(groundingTarget);
+        Debug.Log("Ground: Exists=" + (groundingTarget != null) + ", CanSurfaceOn=" + (groundingTarget != null && groundingTarget.rules.CanSurfaceOn(groundPlane)));
+
+        //Surface is valid if:
+        //  there is a ground available in the player's grounding direction and
+        //  the target has no surface restrictions or the target's surface restrictions match the ground direction 
+        bool validSurface = 
+            groundingTarget != null && groundingTarget.rules.CanSurfaceOn(groundPlane) &&
+            (target == null || !target.rules.RequiresSurface() || target.rules.RequiresSurfaceIn(groundPlane));
+
+        bool canExit = current == null || current.rules.CanExitTowards(directionMask);
+
+        bool canEnterTarget = validSurface || (target != null && target.rules.CanEnterFrom(DirectionMaskUtils.ReverseMask(directionMask)));
+
+        Debug.Log("Surface " + validSurface + ", Exit " + canExit + ", Enter " + canEnterTarget);
+        
+        return canExit && canEnterTarget;
+    }
+
+    void OnMovePlayer1(InputValue input)
+    {
+        player1.OnMove(input);
+    }
+
+    void OnMovePlayer2(InputValue input)
+    {
+        player2.OnMove(input);
     }
 }

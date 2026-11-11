@@ -10,7 +10,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] bool isPlayer2 = false;
     public const float defaultMoveTime = 0.1f;
 
-    [SerializeField] Vector3 gridPosition = Vector3.zero;
+    [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
     [SerializeField] ArrayManager arrayManager;
 
     //Handles interpolation coroutine
@@ -22,14 +22,8 @@ public class PlayerController : MonoBehaviour
         transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition);
     }
 
-
-
-
-
     void MovePlayer(Vector3 arrayCoordinates)
     {
-        Vector3Int currentPos = DirectionMaskUtils.Vector3Floor(WorldUtils.WorldToArrayCoordinates(transform.position));
-        if (!arrayManager.CanMove(DirectionMaskUtils.Vector3Floor(arrayCoordinates - currentPos), currentPos, DirectionMask.U)) return;
         if (moveCoroutine != null)
         {
             StopCoroutine(moveCoroutine);
@@ -61,24 +55,14 @@ public class PlayerController : MonoBehaviour
         moveCoroutine = null;
     }
 
-
-
-    void OnMove(InputValue value)
+    public void OnMove(InputValue value)
     {
-        Vector2 inputDirection = value.Get<Vector2>();
-        gridPosition += (Vector3)inputDirection;
+        Vector2 rawInput = value.Get<Vector2>();
+        rawInput.x *= -1; //Invert so "D" or "Right" is positive
+        Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
+        Debug.Log(direction);
+        if (!arrayManager.CanMove(gridPosition + direction, gridPosition, direction, DirectionMask.U)) return;
+        gridPosition += direction;
         MovePlayer(gridPosition);
-    }
-
-    void OnMovePlayer1(InputValue value)
-    {
-        if (isPlayer2) return;
-        OnMove(value);
-    }
-
-    void OnMovePlayer2(InputValue value)
-    {
-        if (!isPlayer2) return;
-        OnMove(value);
     }
 }

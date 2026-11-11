@@ -14,3 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp-Editor::GridData
   prefabName: testGrid2
   height: 20
+  bounds:
+    m_Position: {x: 0, y: 0, z: 0}
+    m_Size: {x: 20, y: 20, z: 20}

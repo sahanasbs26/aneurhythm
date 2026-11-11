@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 /// <summary>
@@ -24,7 +22,16 @@ public class TileRules : ScriptableObject
 
     [Tooltip("For \"wall\" tiles. Specifies a surface necessary to enter the tile")]
     [SerializeField] DirectionMask _requiredSurfaceDirection; 
-    [SerializeField] MountPosition _mountPosition;
+    [SerializeField] MountOffset _mountPosition;
+
+    TileRules()
+    {
+        _surfaceableDirections = 0;
+        _exitDirections = (DirectionMask)ushort.MaxValue;
+        _enterDirections = (DirectionMask)ushort.MaxValue;
+        _requiredSurfaceDirection = (DirectionMask)ushort.MaxValue;
+        _mountPosition = new MountOffset();
+    } 
 
     /// <summary>
     /// Directions relative to this block where player can stand.
@@ -38,8 +45,8 @@ public class TileRules : ScriptableObject
 
     /// <summary>
     /// For "wall" tiles or equivalent.
-    /// Directions relative to this tile where a surfacable tile is needed to enter this block.
-    /// E.g. For a vertical wall, a surface below the wall is needed and therefore a downward DirectionMask.
+    /// Surface planes the player needs to stand on when entering this block.
+    /// E.g. For a vertical fence, the player stands on the upward plane of the block below.
     /// </summary>
     public DirectionMask requiredSurfaceDirection => _requiredSurfaceDirection; 
 
@@ -56,10 +63,11 @@ public class TileRules : ScriptableObject
     /// <summary>
     /// Contains offset and base angle of the player when on this tile.
     /// </summary>
-    public MountPosition mountPosition => _mountPosition;
+    public MountOffset mountPosition => _mountPosition;
 
     public bool CanEnterFrom(DirectionMask directions) => (_enterDirections & directions) != 0;
     public bool RequiresSurfaceIn(DirectionMask directions) => (_requiredSurfaceDirection & directions) != 0;
+    public bool RequiresSurface() => _requiredSurfaceDirection == 0;
     public bool CanSurfaceOn(DirectionMask faceDirections) => (_surfaceableDirections & faceDirections) != 0;
     public bool CanExitTowards(DirectionMask directions) => (_exitDirections & directions) != 0;
 
@@ -282,7 +290,7 @@ public enum DirectionMask : ushort //? maybe unnecessary to use short...
 ///
 [Tooltip("Position of player when in tile IN WORLD SPACE")]
 [Serializable]
-public struct MountPosition
+public struct MountOffset
 {
     /// <summary>
     /// Angle in WORLD SPACE to rotate the player when standing.
