@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.IO;
 using UnityEngine.Tilemaps;
+using Unity.VisualScripting;
 
 /// <summary>
 /// Generates a 3D tilemap grid.
@@ -17,6 +18,7 @@ public class GridGenerator : Editor
     {
         GridData gridData = Selection.activeObject as GridData;
         if (gridData == null) {Debug.LogError("Select GridData object to generate a grid."); return; }
+        if (gridData.prefabName == "") {Debug.LogError("No name entered in gridData"); return; }
 
         GameObject temp = new GameObject(gridData.prefabName);
 
@@ -50,6 +52,10 @@ public class GridGenerator : Editor
     {
         //Create tilemap grid
         Grid grid = obj.AddComponent<Grid>();
+        ArrayManager manager = grid.AddComponent<ArrayManager>();
+        manager.gridData = gridData;
+        manager.grid = grid;
+
         grid.cellSwizzle = GridLayout.CellSwizzle.XZY;
 
         //Add tilemap levels
@@ -57,6 +63,7 @@ public class GridGenerator : Editor
         {
             GameObject level = new GameObject("Level " + i);
             Tilemap tilemap = level.AddComponent<Tilemap>();
+
             tilemap.orientation = Tilemap.Orientation.XZ;
             level.AddComponent<TilemapRenderer>();
             level.transform.position = Vector3.up * i;

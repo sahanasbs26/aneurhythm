@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     public const float defaultMoveTime = 0.1f;
 
     [SerializeField] Vector3 gridPosition = Vector3.zero;
+    [SerializeField] ArrayManager arrayManager;
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
@@ -27,6 +28,8 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer(Vector3 arrayCoordinates)
     {
+        Vector3Int currentPos = DirectionMaskUtils.Vector3Floor(WorldUtils.WorldToArrayCoordinates(transform.position));
+        if (!arrayManager.CanMove(DirectionMaskUtils.Vector3Floor(arrayCoordinates - currentPos), currentPos, DirectionMask.U)) return;
         if (moveCoroutine != null)
         {
             StopCoroutine(moveCoroutine);

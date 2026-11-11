@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
-  m_Name: Tile
+  m_Name: SolidBlockRules
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
-  _surfaceableDirections: 0
-  _exitDirections: 0
+  _surfaceableDirections: 16
+  _exitDirections: 15
   _enterDirections: 0
   _requiredSurfaceDirection: 0
   _mountPosition:
-    angle: {x: 0, y: 0, z: 0, w: 0}
+    angle: {x: 0, y: 0, z: 0, w: 1}
     offset: {x: 0, y: 0, z: 0}

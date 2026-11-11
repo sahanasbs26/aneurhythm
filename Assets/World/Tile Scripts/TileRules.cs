@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 /// <summary>
 /// Contains position, mounting, and exit/enter/surface rules of a tile.
 /// Other tiles should inherit from this one.
-/// All coordinates are relative to "array" space, as (x, y, z) = (forward, right, up).
+/// All coordinates are relative to "array" space, as (x, y, z) = (N, E, U) = (forward, right, up).
 /// "Surfacing" means a player can walk on the periphery of the tile (e.g. on top).
 /// "Entering" means a player can walk into this tile position.
 /// </summary>
@@ -15,6 +18,9 @@ public class TileRules : ScriptableObject
     [SerializeField] DirectionMask _surfaceableDirections;
     [SerializeField] DirectionMask _exitDirections;
     [SerializeField] DirectionMask _enterDirections;
+    
+    //TODO: If time, add support for going on sides of blocks
+    //[SerializeField] DirectionMask _plane;
 
     [Tooltip("For \"wall\" tiles. Specifies a surface necessary to enter the tile")]
     [SerializeField] DirectionMask _requiredSurfaceDirection; 
@@ -57,6 +63,189 @@ public class TileRules : ScriptableObject
     public bool CanSurfaceOn(DirectionMask faceDirections) => (_surfaceableDirections & faceDirections) != 0;
     public bool CanExitTowards(DirectionMask directions) => (_exitDirections & directions) != 0;
 
+}
+
+//TODO: Check destructiveness of maskToVector/vectorToMask functions
+public class DirectionMaskUtils
+{
+    public static Dictionary<DirectionMask, int> bitPositions = new Dictionary<DirectionMask, int>
+    {
+      {DirectionMask.N, 0},
+      {DirectionMask.E, 1}, 
+      {DirectionMask.S, 2}, 
+      {DirectionMask.W, 3},
+
+      {DirectionMask.U, 4}, 
+      {DirectionMask.D, 5}, 
+
+      {DirectionMask.UN, 6},
+      {DirectionMask.UE, 7}, 
+      {DirectionMask.US, 8}, 
+      {DirectionMask.UW, 9},
+
+      {DirectionMask.DN, 10},
+      {DirectionMask.DE, 11}, 
+      {DirectionMask.DS, 12}, 
+      {DirectionMask.DW, 13},
+    };
+    /// <summary>
+    /// Returns a DirectionMask in all the general directions of the given vector.
+    /// E.g. a vector in +x will return a direciton mask in N, UN, SN directions
+    /// Pass an integer for best results. 
+    /// </summary>
+    /// <param name="direction">Vector in ARRAY SPACE</param>
+    /// <returns></returns>
+    public static DirectionMask VectorToMaskLenient(Vector3 direction)
+    {
+        DirectionMask mask = 0;
+        if (direction.x > 0)
+        {
+            mask |= DirectionMask.N | DirectionMask.DN | DirectionMask.UN;
+        } else if (direction.x < 0)
+        {
+            mask |= DirectionMask.S | DirectionMask.DS | DirectionMask.US;
+        }
+
+        if (direction.y > 0)
+        {
+            mask |= DirectionMask.E | DirectionMask.DE | DirectionMask.UE;
+        } else if (direction.y < 0)
+        {
+            mask |= DirectionMask.W | DirectionMask.DW | DirectionMask.UW;
+        }
+
+        if (direction.z > 0)
+        {
+            mask |= DirectionMask.U | DirectionMask.UN | DirectionMask.UE | DirectionMask.US | DirectionMask.UW;
+        } else if (direction.z < 0)
+        {
+            mask |= DirectionMask.D | DirectionMask.DN | DirectionMask.DE | DirectionMask.DS | DirectionMask.DW;
+        }
+
+        return mask;
+    }
+
+    /// <summary>
+    /// Returns a DirectionMask in the directions of the given vector points
+    /// E.g. a vector in +x will return a mask in N direction. A vector in +x and +y will return N|E;
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    public static DirectionMask VectorToMaskStrict(Vector3 direction)
+    {
+        direction = direction.normalized;
+        float cutoff = 1/Mathf.Sqrt(2);
+        DirectionMask mask = 0;
+        if (direction.x >= cutoff)
+        {
+            mask |= DirectionMask.N;
+        } else if (direction.x <= -cutoff)
+        {
+            mask |= DirectionMask.S;
+        }
+
+        if (direction.y >= cutoff)
+        {
+            mask |= DirectionMask.E;
+        } else if (direction.y <= -cutoff)
+        {
+            mask |= DirectionMask.W;
+        }
+
+        if (direction.z >= cutoff)
+        {
+            mask |= DirectionMask.U;
+        } else if (direction.z <= -cutoff)
+        {
+            mask |= DirectionMask.D;
+        }
+
+        return mask;
+    }
+    
+    /// <summary>
+    /// Returns vector in directions of the direction mask.
+    /// Values in any direction are constrained to 1.
+    /// Not normalized
+    /// (x, y, z) = (N, E, U)
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    public static Vector3Int MaskToVector(DirectionMask direction)
+    {
+        Vector3Int vect = Vector3Int.zero;
+        if (((DirectionMask.N | DirectionMask.UN | DirectionMask.DN) & direction) != 0)
+            vect += new Vector3Int(1, 0, 0);
+        if (((DirectionMask.S | DirectionMask.US | DirectionMask.DS) & direction) != 0)
+            vect += new Vector3Int(-1, 0, 0);
+
+        if (((DirectionMask.E | DirectionMask.UE | DirectionMask.DE) & direction) != 0)
+            vect += new Vector3Int(0, 1, 0);
+        if (((DirectionMask.W | DirectionMask.UW | DirectionMask.DW) & direction) != 0)
+            vect += new Vector3Int(-1, 0, 0);
+
+        if (((DirectionMask.U | DirectionMask.UN | DirectionMask.UE | DirectionMask.US | DirectionMask.UW) & direction) != 0)
+            vect += new Vector3Int(0, 0, 1);
+        if (((DirectionMask.D | DirectionMask.DN | DirectionMask.DE | DirectionMask.DS | DirectionMask.DW) & direction) != 0)
+            vect += new Vector3Int(0, 0, -1);
+        return vect;
+    }
+
+    public static Vector3Int Vector3Floor(Vector3 v)
+    {
+        return new Vector3Int(Mathf.FloorToInt(v.x), Mathf.FloorToInt(v.y), Mathf.FloorToInt(v.z));
+    }
+
+    /// <summary>
+    /// Swaps the bits at the two given positions. 
+    /// !Does not bounds check.
+    /// </summary>
+    /// <param name="num"></param>
+    /// <param name="pos1"></param>
+    /// <param name="pos2"></param>
+    /// <returns></returns>
+    public static int SwapBits(int num, int pos1, int pos2)
+    {
+        int bit1 = (num >> pos1) & 1;
+        int bit2 = (num >> pos2) & 1;
+
+        //flip bits if different
+        if ((bit1 ^ bit2) != 0) num ^= (1 << pos1) | (1 << pos2);
+
+        return num;
+    }
+
+    public static DirectionMask SwapBits(DirectionMask mask, int pos1, int pos2)
+    {
+        int num = (int)mask;
+        int bit1 = (num >> pos1) & 1;
+        int bit2 = (num >> pos2) & 1;
+
+        //flip bits if different
+        if ((bit1 ^ bit2) != 0) num ^= (1 << pos1) | (1 << pos2);
+
+        return (DirectionMask)num;
+    }
+
+    /// <summary>
+    /// Reverses the directions of the mask.
+    /// </summary>
+    /// <param name="directions"></param>
+    /// <returns></returns>
+    public static DirectionMask ReverseMask(DirectionMask direction)
+    {
+        //theres probably a smarter way to do this but i eepy
+        DirectionMask mask = direction;
+        mask = SwapBits(mask, bitPositions[DirectionMask.N], bitPositions[DirectionMask.S]);
+        mask = SwapBits(mask, bitPositions[DirectionMask.W], bitPositions[DirectionMask.E]);
+        mask = SwapBits(mask, bitPositions[DirectionMask.U], bitPositions[DirectionMask.D]);
+
+        mask = SwapBits(mask, bitPositions[DirectionMask.UN], bitPositions[DirectionMask.DS]);
+        mask = SwapBits(mask, bitPositions[DirectionMask.UE], bitPositions[DirectionMask.DW]);
+        mask = SwapBits(mask, bitPositions[DirectionMask.US], bitPositions[DirectionMask.DN]);
+        mask = SwapBits(mask, bitPositions[DirectionMask.UW], bitPositions[DirectionMask.DE]);
+        return mask;
+    }
 }
 
 /// <summary>

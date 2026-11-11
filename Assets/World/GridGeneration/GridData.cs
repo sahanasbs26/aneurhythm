@@ -5,4 +5,5 @@ public class GridData : ScriptableObject
 {
     public string prefabName;
     public int height;
+    public BoundsInt bounds;
 }
