@@ -12,13 +12,13 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] RectTransform calibrationParent;
     [SerializeField] SongManager songManager;
     BeatManager beatManager;
-    GameManager gameManager;
+    InputManager gameManager;
 
     GameObject calibrationUI;
 
     void Awake()
     {
-        gameManager = GetComponent<GameManager>();
+        gameManager = GetComponent<InputManager>();
         pauseMenu.gameObject.SetActive(false);
         beatManager = songManager.gameObject.GetComponent<BeatManager>();
     }

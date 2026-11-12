@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     public const float defaultMoveTime = 0.1f;
 
     [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
+    [SerializeField] Vector3 worldOffset;
     [SerializeField] ArrayManager arrayManager;
 
     //Handles interpolation coroutine
@@ -19,7 +20,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition);
+        transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition) + worldOffset;
     }
 
     void MovePlayer(Vector3 arrayCoordinates)
@@ -29,7 +30,7 @@ public class PlayerController : MonoBehaviour
             StopCoroutine(moveCoroutine);
             transform.position = currentDestination;
         }
-        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates)));
+        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates) + worldOffset));
     }
 
     IEnumerator LerpToPosition(Vector3 worldCoordinates, float moveDuration = defaultMoveTime)
@@ -61,8 +62,12 @@ public class PlayerController : MonoBehaviour
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
         Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
         Debug.Log(direction);
-        if (!arrayManager.CanMove(gridPosition + direction, gridPosition, direction, DirectionMask.U)) return;
-        gridPosition += direction;
-        MovePlayer(gridPosition);
+        Vector3Int target = arrayManager.FindMoveableTarget(gridPosition, direction, DirectionMask.U);
+        if (gridPosition != target)
+        {
+            gridPosition = target;
+            Debug.Log("Moving to array" + gridPosition + " world" + WorldUtils.ArrayToWorldCoordinates(gridPosition));
+            MovePlayer(gridPosition);
+        }
     }
 }

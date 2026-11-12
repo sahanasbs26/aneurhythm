@@ -1,4 +1,7 @@
+using System;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
@@ -54,6 +57,33 @@ public class ArrayManager : MonoBehaviour
         }
     }
 
+
+    //Determine potential movement targets as all faces in general direction of movement & current tile's exit
+    //In a priority order, check whether the player can move in those directions & move if able
+    public Vector3Int FindMoveableTarget(Vector3Int currentPos, Vector3 directionVector, DirectionMask groundPlane)
+    {
+        DirectionMask direction = DirectionMaskUtils.VectorToMaskLenient(directionVector);
+        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
+        DirectionMask possibleDirections = (current == null) ? 
+            DirectionMaskUtils.CardinalsSurroundingAndBelow(groundPlane) & direction : 
+            current.rules.exitDirections & direction;
+
+        foreach (DirectionMask mask in Enum.GetValues(typeof(DirectionMask)))
+        {
+            if ((possibleDirections & mask) == 0) continue;
+            
+            Debug.Log("Checking direction: " + mask);
+            Vector3Int target = DirectionMaskUtils.MaskToVector(mask) + currentPos;
+            Debug.Log("Checking Target" + target + " from current" + currentPos);
+            if (CanMove(target, currentPos, direction, groundPlane))
+            {
+                Debug.Log("Found target: " + target);
+                return target;
+            }
+        }
+        return currentPos;
+    }
+
     /// <summary>
     /// Determines whether player can move in a direction based on their position and surrounding tiles.
     /// </summary>
@@ -61,9 +91,8 @@ public class ArrayManager : MonoBehaviour
     /// <param name="currentPos">Position of the player, in array space</param>
     /// <param name="groundPlane">The direction of the plane the player is standing on, e.g. "U" if the player is standing on top of a block</param>
     /// <returns></returns>
-    public bool CanMove(Vector3Int targetPos, Vector3Int currentPos, Vector3 direction, DirectionMask groundPlane)
+    public bool CanMove(Vector3Int targetPos, Vector3Int currentPos, DirectionMask directionMask, DirectionMask groundPlane)
     {
-        DirectionMask directionMask = DirectionMaskUtils.VectorToMaskStrict(direction);
         Vector3Int groundingTargetPos = targetPos - DirectionMaskUtils.MaskToVector(groundPlane);
         Debug.Log(groundingTargetPos + ", World: " + WorldUtils.ArrayToWorldCoordinates(groundingTargetPos));
 
@@ -91,6 +120,7 @@ public class ArrayManager : MonoBehaviour
 
     void OnMovePlayer1(InputValue input)
     {
+        Debug.Log("Moved player");
         player1.OnMove(input);
     }
 

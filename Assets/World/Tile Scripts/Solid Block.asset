@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
-  m_Name: SolidBlockRules
+  m_Name: Solid Block
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
-  _surfaceableDirections: 16
+  _surfaceableDirections: 63
   _exitDirections: 0
   _enterDirections: 0
   _requiredSurfaceDirection: 0
