@@ -12,10 +12,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
   m_Name: Solid Block
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
-  _surfaceableDirections: 63
-  _exitDirections: 0
-  _enterDirections: 0
-  _requiredSurfaceDirection: 0
-  _mountPosition:
-    angle: {x: 0, y: 0, z: 0, w: 1}
-    offset: {x: 0, y: 0, z: 0}
+  _surfaces:
+  - _ports:
+    - _height: 0
+      _orientation: 16
+    - _height: 0
+      _orientation: 2
+    - _height: 0
+      _orientation: 32
+    - _height: 0
+      _orientation: 8
+    _orientation: 1
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}
+  - _ports: []
+    _orientation: 2
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}
+  - _ports: []
+    _orientation: 4
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}
+  - _ports: []
+    _orientation: 8
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}
+  - _ports:
+    - _height: 0
+      _orientation: 1
+    - _height: 0
+      _orientation: 2
+    - _height: 0
+      _orientation: 4
+    - _height: 0
+      _orientation: 8
+    _orientation: 16
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}
+  - _ports: []
+    _orientation: 32
+    _mount:
+      _offset: {x: 0, y: 0, z: 0}

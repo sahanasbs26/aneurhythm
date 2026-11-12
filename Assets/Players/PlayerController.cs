@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
     [SerializeField] Vector3 worldOffset;
     [SerializeField] ArrayManager arrayManager;
+    TileSurface? currentSurface = null;
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
@@ -62,12 +63,12 @@ public class PlayerController : MonoBehaviour
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
         Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
         Debug.Log(direction);
-        Vector3Int target = arrayManager.FindMoveableTarget(gridPosition, direction, DirectionMask.U);
-        if (gridPosition != target)
+        if (arrayManager.FindMoveableTarget(gridPosition, direction, currentSurface.HasValue ? currentSurface.Value.orientation : DirectionMask.U, out Vector3Int? target, out TileSurface? targetSurface))
         {
-            gridPosition = target;
+            gridPosition = target.Value;
+            currentSurface = targetSurface.Value;
             Debug.Log("Moving to array" + gridPosition + " world" + WorldUtils.ArrayToWorldCoordinates(gridPosition));
-            MovePlayer(gridPosition);
+            MovePlayer(gridPosition); 
         }
     }
 }

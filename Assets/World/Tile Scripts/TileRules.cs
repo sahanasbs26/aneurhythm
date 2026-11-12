@@ -1,6 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -13,55 +13,53 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "TileRule", menuName = "Scriptable Objects/TileRule")]
 public class TileRules : ScriptableObject
 {
-    [Tooltip("Faces a player can stand on")]
-    [SerializeField] DirectionMask _surfaceableDirections;
-    [SerializeField] DirectionMask _exitDirections;
-    [SerializeField] DirectionMask _enterDirections;
-    
-    //TODO: If time, add support for going on sides of blocks
-    //[SerializeField] DirectionMask _plane;
 
-    [Tooltip("For \"wall\" tiles. Specifies a surface necessary to enter the tile")]
-    [SerializeField] DirectionMask _requiredSurfaceDirection; 
-    [SerializeField] MountOffset _mountPosition;
+    [Tooltip("Standable surfaces")]
+    [SerializeField] List<TileSurface> _surfaces;
 
     /// <summary>
-    /// Directions relative to this block where player can stand.
-    /// Up means the player can stand on top of the block, 
-    /// North means the player can stand on the northern side of the block.
-    /// *Does not have a custom mask for surfaceable exits: Assumes player can exit towards any other enterable/surfaceble direction.
-    /// *Therefore, a surfaceable direction should always appear as a flat surface.
-    /// To define rules on a surface, add an enterable "wall" tile 
+    /// List of surfaces the player can stand on. Orientation is normal from the surface.
     /// </summary>
-    public DirectionMask surfaceableDirections => _surfaceableDirections;
+    public List<TileSurface> surfaces => _surfaces;
 
-    /// <summary>
-    /// For "wall" tiles or equivalent.
-    /// Surface planes the player needs to stand on when entering this block.
-    /// E.g. For a vertical fence, the player stands on the upward plane of the block below.
-    /// </summary>
-    public DirectionMask requiredSurfaceDirection => _requiredSurfaceDirection; 
+    Dictionary<DirectionMask, TileSurface> _surfaceLookup;
 
-    /// <summary>
-    /// Directions player can exit this tile from, relative to this block.
-    /// </summary>
-    public DirectionMask exitDirections => _exitDirections;
+    public TileSurface GetSurface(DirectionMask mask)
+    {
+        _surfaceLookup ??= BuildLookup();
+        return _surfaceLookup[mask];
+    }
 
-    /// <summary>
-    /// Directions player can enter this block from, relative to this block
-    /// </summary>
-    public DirectionMask enterDirections => _enterDirections;
+    public bool TryGetSurface(DirectionMask mask, out TileSurface surface)
+    {
+        _surfaceLookup ??= BuildLookup();
+        return _surfaceLookup.TryGetValue(mask, out surface);
+    }
 
-    /// <summary>
-    /// Contains offset and base angle of the player when on this tile.
-    /// </summary>
-    public MountOffset mountPosition => _mountPosition;
+    void OnValidate()
+    {
+        _surfaceLookup = BuildLookup();
+        foreach(TileSurface surface in surfaces)
+        {
+            surface.OnValidate();
+            foreach (TilePort port in surface.ports)
+            {
+                port.OnValidate();
+            }
+        }
+        //TODO: Validate surface orientation & ports
+    }
 
-    public bool CanEnterFrom(DirectionMask directions) => (_enterDirections & directions) != 0;
-    public bool RequiresSurfaceIn(DirectionMask directions) => (_requiredSurfaceDirection & directions) != 0;
-    public bool RequiresSurface() => _requiredSurfaceDirection == 0;
-    public bool CanSurfaceOn(DirectionMask faceDirections) => (_surfaceableDirections & faceDirections) != 0;
-    public bool CanExitTowards(DirectionMask directions) => (_exitDirections & directions) != 0;
+    Dictionary<DirectionMask, TileSurface> BuildLookup()
+    {
+        Dictionary<DirectionMask, TileSurface> lookup = new Dictionary<DirectionMask, TileSurface>();
+        foreach (TileSurface surface in _surfaces)
+        {
+            lookup.Add(surface.orientation, surface);
+        }
+        return lookup;
+    }
+
 }
 
 /// <summary>
@@ -74,8 +72,57 @@ public class TileRules : ScriptableObject
 [Serializable]
 public struct TileSurface
 {
-    [SerializeField] List<TilePort> ports;
-    [SerializeField] DirectionMask orientation;
+    [Tooltip("Free movement between opposite-facing same-height ports")]
+    [SerializeField] List<TilePort> _ports;
+    public List<TilePort> ports => _ports;
+
+    [Tooltip("Determines how the player stands on the surface")]
+    [SerializeField] DirectionMask _orientation;
+
+    public DirectionMask orientation => _orientation;
+
+    [Tooltip("Determines the visualized position of the player on the surface")]
+    [SerializeField] TileMount _mount;
+    public TileMount mount => _mount;
+
+    Dictionary<DirectionMask, TilePort> _portLookup;
+
+    public TilePort GetPort(DirectionMask mask)
+    {
+        _portLookup ??= BuildLookup();
+        return _portLookup[mask];
+    }
+
+    public bool TryGetPort(DirectionMask mask, out TilePort port)
+    {
+        _portLookup ??= BuildLookup();
+        return _portLookup.TryGetValue(mask, out port);
+    }
+
+    public void OnValidate()
+    {
+        Debug.Log("Triggered TileSurface OnValidate");
+        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
+        {
+            _orientation = DirectionMask.N;
+            Debug.LogError("Error in TileSurface: orientation must include exactly one direction");
+        } else
+        {
+            _portLookup = BuildLookup();
+            _mount.SetAngleForSurface(_orientation);
+        }
+        //TODO: Validate surface orientation & ports
+    }
+
+    Dictionary<DirectionMask, TilePort> BuildLookup()
+    {
+        Dictionary<DirectionMask, TilePort> lookup = new Dictionary<DirectionMask, TilePort>();
+        foreach (TilePort port in _ports)
+        {
+            lookup.Add(port.orientation, port);
+        }
+        return lookup;
+    }
     
 }
 
@@ -88,8 +135,23 @@ public struct TileSurface
 [Serializable]
 public struct TilePort
 {
-    [SerializeField] float height;
-    [SerializeField] DirectionMask orientation;
+    [Tooltip("Same-height ports allow movement between them")]
+    [SerializeField] float _height;
+    public float height => _height;
+
+    [Tooltip("Opposite-facing ports allow movement between")]
+    [SerializeField] DirectionMask _orientation;
+
+    public DirectionMask orientation => _orientation;
+
+    public void OnValidate()
+    {    
+        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
+        {
+            _orientation = DirectionMask.N;
+            Debug.LogError("Error in TilePort: orientation must include exactly one direction");
+        }
+    }
 }
 
 //TODO: Check destructiveness of maskToVector/vectorToMask functions
@@ -122,6 +184,11 @@ public class DirectionMaskUtils
     };
 
     public static int NUM_DIRECTIONS = 18;
+
+    public static bool ExactlyOneBit(DirectionMask direction)
+    {
+        return (direction > 0) && (direction & (direction - 1)) == 0;
+    }
 
     /// <summary>
     /// Returns a DirectionMask in all the general directions of the given vector.
@@ -162,38 +229,106 @@ public class DirectionMaskUtils
 
     /// <summary>
     /// Returns a DirectionMask in the directions of the given vector points
-    /// TODO: Add support for NE/NW/SE/SW 
     /// E.g. a vector in +x will return a mask in N direction. A vector in +x and +y will return N|E;
     /// </summary>
     /// <param name="direction"></param>
     /// <returns></returns>
     public static DirectionMask VectorToMaskStrict(Vector3 direction)
     {
-        direction = direction.normalized;
-        float cutoff = 1/Mathf.Sqrt(2);
+        if (direction == Vector3.zero) return 0;
+
         DirectionMask mask = 0;
-        if (direction.x >= cutoff)
+        switch( Mathf.Atan2(direction.y, direction.x))
         {
-            mask |= DirectionMask.N;
-        } else if (direction.x <= -cutoff)
-        {
-            mask |= DirectionMask.S;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.W;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.NW;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.N;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.NE;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.E;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.SE;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.S;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.SW;
+                break;
+            default:
+                mask |= DirectionMask.W;
+                break; 
         }
 
-        if (direction.y >= cutoff)
+        switch(Mathf.Atan2(direction.z, direction.x))
         {
-            mask |= DirectionMask.E;
-        } else if (direction.y <= -cutoff)
-        {
-            mask |= DirectionMask.W;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.W;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.UW;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.U;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.UE;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.E;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.DE;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.D;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.DW;
+                break;
+            default:
+                mask |= DirectionMask.W;
+                break; 
         }
 
-        if (direction.z >= cutoff)
+        switch(Mathf.Atan2(direction.z, direction.y))
         {
-            mask |= DirectionMask.U;
-        } else if (direction.z <= -cutoff)
-        {
-            mask |= DirectionMask.D;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.S;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.US;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.U;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.UN;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.N;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.DN;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.D;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.DS;
+                break;
+            default:
+                mask |= DirectionMask.S;
+                break; 
         }
 
         return mask;
@@ -339,34 +474,54 @@ public enum DirectionMask : uint //? maybe unnecessary to use short...
 ///
 [Tooltip("Position of player when in tile IN WORLD SPACE")]
 [Serializable]
-public struct MountOffset
+public struct TileMount
 {
+    public static float TILE_HALF_WIDTH = 0.5f;
     /// <summary>
     /// Angle in WORLD SPACE to rotate the player when standing.
     /// Should be able to easily combine with the player's own rotation
     /// !ANGLE IN WORLD SPACE
     /// </summary>
-    [Tooltip("IN WORLD SPACE")]
-    public Quaternion angle;
+    Quaternion _angle;
+    public Quaternion angle => _angle; 
 
     /// <summary>
     /// Position in array space to offset the player when standing
     /// !OFFSET IN WORLD SPACE
     /// </summary>
     [Tooltip("IN WORLD SPACE")]
-    public Vector3 offset;
+    [SerializeField] Vector3 _offset;
+    public Vector3 offset => _offset;
 
-    /// <summary>
-    /// Calculates angle vector and offset position for a slope.
-    /// Offset is relative to the height of the block
-    /// </summary>
-    /// <param name="direction">Cardinal direction IN ARRAY SPACE players moves in when going up the stairs.</param>
-    /// <param name="slopeAngle">In degrees; angle of the slope to position the player.</param>
-    public void SetSlopeMount(Vector3 direction, float slopeAngle)
+    public void SetAngleForSurface(DirectionMask surface)
     {
-        direction = WorldUtils.ArrayToWorldCoordinates(direction.normalized);
-        offset = Mathf.Tan(slopeAngle * Mathf.Deg2Rad) * Vector3.up;
-        angle = Quaternion.LookRotation(direction + offset);
+        _angle = Quaternion.LookRotation(Vector3.right, WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(surface)));
+    }
+
+    public void SetOuterSurfaceMount(DirectionMask surface)
+    {
+        SetAngleForSurface(surface);
+        switch(surface)
+        {
+            case DirectionMask.U:
+                _offset = TILE_HALF_WIDTH * Vector3.up;
+                break;
+            case DirectionMask.D:
+                _offset = TILE_HALF_WIDTH * Vector3.down;
+                break;
+            case DirectionMask.N:
+                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.N));
+                break;
+            case DirectionMask.S:
+                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.S));
+                break;
+            case DirectionMask.W:
+                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.W));
+                break;
+            case DirectionMask.E:
+                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.E));
+                break;
+        }
     }
 }
     

@@ -60,72 +60,73 @@ public class ArrayManager : MonoBehaviour
 
     //Determine potential movement targets as all faces in general direction of movement & current tile's exit
     //In a priority order, check whether the player can move in those directions & move if able
-    public Vector3Int FindMoveableTarget(Vector3Int currentPos, Vector3 directionVector, DirectionMask groundPlane)
+    public bool FindMoveableTarget(Vector3Int currentPos, Vector3 directionVector, DirectionMask surface, out Vector3Int? outTargetPos, out TileSurface? outTileSurface)
     {
-        DirectionMask direction = DirectionMaskUtils.VectorToMaskLenient(directionVector);
-        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
-        DirectionMask possibleDirections = (current == null) ? 
-            DirectionMaskUtils.CardinalsSurroundingAndBelow(groundPlane) & direction : 
-            current.rules.exitDirections & direction;
+        //Default to null if no target is found or on error
+        outTargetPos = null;
+        outTileSurface = null;
 
-        foreach (DirectionMask mask in Enum.GetValues(typeof(DirectionMask)))
+        DirectionMask direction = DirectionMaskUtils.VectorToMaskLenient(directionVector);
+
+        //Search for a valid current tile; accepts tiles the player is standing on if their current pos is air==null
+        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
+        if (current == null) {
+            Vector3Int groundPos = currentPos - DirectionMaskUtils.MaskToVector(surface);
+            current = array[groundPos.x, groundPos.y, groundPos.z];
+        }
+        if (current == null)
         {
-            if ((possibleDirections & mask) == 0) continue;
-            
-            Debug.Log("Checking direction: " + mask);
-            Vector3Int target = DirectionMaskUtils.MaskToVector(mask) + currentPos;
-            Debug.Log("Checking Target" + target + " from current" + currentPos);
-            if (CanMove(target, currentPos, direction, groundPlane))
+            Debug.LogError("Couldn't find current tile at current{array" + currentPos + ", world" + WorldUtils.ArrayToWorldCoordinates(currentPos) + "}");
+            return false;
+        }
+
+        //Retrieve and check that the surface
+        TileSurface currentSurface;
+        if (!current.rules.TryGetSurface(surface, out currentSurface))
+        {
+            Debug.LogError("Couldn't find surface(" + surface + ") of current tile at current{array" + currentPos + ", world" + WorldUtils.ArrayToWorldCoordinates(currentPos) + "}");
+            return false;
+        }
+
+        //Gather all directions with matching move & port exit directions
+        DirectionMask possibleDirections = 0;
+        foreach(TilePort port in currentSurface.ports)
+        {
+            possibleDirections |= port.orientation & direction;
+        }
+
+        //! Assumes DirectionMasks are ordered in priority
+        foreach(DirectionMask dir in Enum.GetValues(typeof(DirectionMask)))
+        {
+            if ((possibleDirections & dir) == 0) continue;
+            Vector3Int targetPos = currentPos + DirectionMaskUtils.MaskToVector(dir);
+            GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
+            //TODO: Handle being above the target block
+            // if (target == null)
+            // {
+            //     Vector3Int groundPos = targetPos - DirectionMaskUtils.MaskToVector(surface);
+            //     target = array[groundPos.x, groundPos.y, groundPos.z];
+            // }
+            if (target == null)
             {
-                Debug.Log("Found target: " + target);
-                return target;
+                Debug.Log("No tile found at " + targetPos + " (world" + WorldUtils.ArrayToWorldCoordinates(targetPos) + ") looking in direction(" + dir + ")");
+                continue;
+            }
+            foreach (TileSurface targetSurface in target.rules.surfaces)
+            {
+                TilePort targetPort;
+                TilePort currentPort = currentSurface.GetPort(dir); //Current port should have been checked when accumulating possibleDirections
+                if (targetSurface.TryGetPort(DirectionMaskUtils.ReverseMask(dir), out targetPort) && targetPort.height == currentPort.height)
+                {
+                    outTargetPos = targetPos;
+                    outTileSurface = targetSurface;
+
+                    Debug.Log("Found target at " + targetPos + "(world("+ WorldUtils.ArrayToWorldCoordinates(targetPos) + ") with surface orientation " + targetSurface.orientation);
+                    return true;
+                }
             }
         }
-        return currentPos;
-    }
-
-    /// <summary>
-    /// Determines whether player can move in a direction based on their position and surrounding tiles.
-    /// </summary>
-    /// <param name="direction">Direction the player will move in, in array space</param>
-    /// <param name="currentPos">Position of the player, in array space</param>
-    /// <param name="groundPlane">The direction of the plane the player is standing on, e.g. "U" if the player is standing on top of a block</param>
-    /// <returns></returns>
-    public bool CanMove(Vector3Int targetPos, Vector3Int currentPos, DirectionMask directionMask, DirectionMask groundPlane)
-    {
-        Vector3Int groundingTargetPos = targetPos - DirectionMaskUtils.MaskToVector(groundPlane);
-        Debug.Log(groundingTargetPos + ", World: " + WorldUtils.ArrayToWorldCoordinates(groundingTargetPos));
-
-        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
-        GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
-        GameplayTile groundingTarget = array[groundingTargetPos.x, groundingTargetPos.y, groundingTargetPos.z];
-        Debug.Log(groundingTarget);
-        Debug.Log("Ground: Exists=" + (groundingTarget != null) + ", CanSurfaceOn=" + (groundingTarget != null && groundingTarget.rules.CanSurfaceOn(groundPlane)));
-
-        //Surface is valid if:
-        //  there is a ground available in the player's grounding direction and
-        //  the target has no surface restrictions or the target's surface restrictions match the ground direction 
-        bool validSurface = 
-            groundingTarget != null && groundingTarget.rules.CanSurfaceOn(groundPlane) &&
-            (target == null || !target.rules.RequiresSurface() || target.rules.RequiresSurfaceIn(groundPlane));
-
-        bool canExit = current == null || current.rules.CanExitTowards(directionMask);
-
-        bool canEnterTarget = validSurface || (target != null && target.rules.CanEnterFrom(DirectionMaskUtils.ReverseMask(directionMask)));
-
-        Debug.Log("Surface " + validSurface + ", Exit " + canExit + ", Enter " + canEnterTarget);
-        
-        return canExit && canEnterTarget;
-    }
-
-    void OnMovePlayer1(InputValue input)
-    {
-        Debug.Log("Moved player");
-        player1.OnMove(input);
-    }
-
-    void OnMovePlayer2(InputValue input)
-    {
-        player2.OnMove(input);
+        Debug.Log("No ports found");
+        return false;
     }
 }

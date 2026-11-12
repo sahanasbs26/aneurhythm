@@ -12,10 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
   m_Name: StairRules
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
-  _surfaceableDirections: 33
-  _exitDirections: 4160
-  _enterDirections: 4164
-  _requiredSurfaceDirection: 0
-  _mountPosition:
-    angle: {x: 0, y: 0, z: 0, w: 0}
-    offset: {x: 0, y: 0, z: 0}
+  _surfaces: []
