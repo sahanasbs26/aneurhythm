@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.AI;
-using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
 
 /// <summary>
@@ -20,6 +20,7 @@ public class ArrayManager : MonoBehaviour
     [SerializeField] PlayerController player2;
 
     GameplayTile[,,] array;
+    GameplayTile[] tiles;
 
     void Awake()
     {
@@ -45,18 +46,67 @@ public class ArrayManager : MonoBehaviour
         tilemapLevels = grid.GetComponentsInChildren<Tilemap>(); 
         foreach (Tilemap tilemap in tilemapLevels)
         {
-            GameplayTile[] tiles = tilemap.GetComponentsInChildren<GameplayTile>();
+            tiles = tilemap.GetComponentsInChildren<GameplayTile>();
             Debug.Log("Found tilemap: " + tilemap.name + " with " + tiles.Length + " tiles");
             foreach (GameplayTile tile in tiles)
             {
-                Vector3 rawPos = WorldUtils.WorldToArrayCoordinates(tile.transform.position);
-                Vector3Int pos = DirectionMaskUtils.Vector3Floor(rawPos);
+                Vector3Int pos = tile.SetArrayPosition();
                 Debug.Log("Found tile at pos: " + pos);
-                array[pos.x, pos.y, pos.z] = tile;                
+                array[pos.x, pos.y, pos.z] = tile;
+            }
+        }
+        SetTileNeighbors();
+    }
+
+    /// <summary>
+    /// Sets the neighbors of all adjacent matching ports.
+    /// ?Check performance 
+    /// </summary>
+    public void SetTileNeighbors()
+    {
+        foreach(GameplayTile tile in tiles)
+        {
+            Vector3Int pos = tile.arrayPosition;
+            HashSet<Vector3Int> targetPositions = new HashSet<Vector3Int>();
+
+            //Get possible tile positions based off port orienations
+            foreach(TileSurface surface in tile.rules.surfaces)
+            {
+                foreach(TilePort port in surface.ports)
+                {
+                    targetPositions.Add(pos + DirectionMaskUtils.MaskToVector(port.orientation));
+                }
+            }
+
+            //Scan every surface and target surface for matching ports
+            foreach (Vector3Int targetPos in targetPositions)
+            {
+                if (!IsValidArrayPosition(targetPos))
+                {
+                    Debug.LogWarning("SetTileNeighbors: Invalid tile position scraped at " + targetPos);
+                    continue;
+                }
+                GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
+                if (target == null) continue;
+
+                foreach (TileSurface surface in tile.rules.surfaces)
+                {
+                    foreach(TileSurface targetSurface in target.rules.surfaces)
+                    {
+                        surface.SetNeighbors(targetSurface);
+                    }
+                }
             }
         }
     }
 
+    public bool IsValidArrayPosition(Vector3Int pos)
+    {
+        return
+            pos.x >= 0 && pos.x < array.GetLength(0) &&
+            pos.y >= 0 && pos.y < array.GetLength(1) &&
+            pos.z >= 0 && pos.z < array.GetLength(2);
+    }
 
     //Determine potential movement targets as all faces in general direction of movement & current tile's exit
     //In a priority order, check whether the player can move in those directions & move if able

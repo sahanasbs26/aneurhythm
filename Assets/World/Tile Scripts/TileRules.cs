@@ -93,10 +93,37 @@ public struct TileSurface
         return _portLookup[mask];
     }
 
+    /// <summary>
+    /// If this surface has a port whose orientation matches the provided DirectionMask, returns true & sets the output parameter. 
+    /// </summary>
+    /// <param name="mask"></param>
+    /// <param name="port"></param>
+    /// <returns></returns>
     public bool TryGetPort(DirectionMask mask, out TilePort port)
     {
         _portLookup ??= BuildLookup();
         return _portLookup.TryGetValue(mask, out port);
+    }
+
+    /// <summary>
+    /// Sets neighbor ports between this and the provided surface.
+    /// Returns number of neighboring ports found.
+    /// Overrides existing neighbors on this surface and the provided surfaces.
+    /// *Does not check adjacency
+    /// </summary>
+    /// <param name="surface"></param>
+    public int SetNeighbors(TileSurface surface)
+    {
+        int numNeighbors = 0;
+        foreach (TilePort port in ports)
+        {
+            if (surface.TryGetPort(DirectionMaskUtils.ReverseMask(port.orientation), out TilePort neighbor))
+            {
+                port.TrySetNeighbor(neighbor);
+                numNeighbors++;
+            }
+        }
+        return numNeighbors;
     }
 
     public void OnValidate()
@@ -133,7 +160,7 @@ public struct TileSurface
 /// Disregard local positioning of ports on a tile (aside from height); assume opposite facing ports allow exchange between eachother
 /// </summary>
 [Serializable]
-public struct TilePort
+public class TilePort
 {
     [Tooltip("Same-height ports allow movement between them")]
     [SerializeField] float _height;
@@ -141,6 +168,8 @@ public struct TilePort
 
     [Tooltip("Opposite-facing ports allow movement between")]
     [SerializeField] DirectionMask _orientation;
+
+    TilePort neighbor;
 
     public DirectionMask orientation => _orientation;
 
@@ -151,6 +180,24 @@ public struct TilePort
             _orientation = DirectionMask.N;
             Debug.LogError("Error in TilePort: orientation must include exactly one direction");
         }
+    }
+
+    /// <summary>
+    /// If the provided port matches in height & orientation, sets eachother as neighbors.
+    /// Does not check for adjacency.
+    /// *Overrides existing neighbors.
+    /// </summary>
+    /// <param name="port"></param>
+    /// <returns></returns>
+    public bool TrySetNeighbor(TilePort port)
+    {
+        if (Mathf.Approximately(height, port.height) && (DirectionMaskUtils.ReverseMask(orientation) & port.orientation) != 0)
+        {
+            neighbor = port;
+            port.neighbor = this;
+            return true;
+        }
+        return false;
     }
 }
 
