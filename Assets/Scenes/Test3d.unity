@@ -377,11 +377,11 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1735282332}
     - target: {fileID: 1667130070992814233, guid: d002b34009a56416da822342d224b79d, type: 3}
-      propertyPath: player1
+      propertyPath: 'array.Array.data[210]'
       value: 
-      objectReference: {fileID: 1845539349}
+      objectReference: {fileID: 0}
     - target: {fileID: 1667130070992814233, guid: d002b34009a56416da822342d224b79d, type: 3}
-      propertyPath: player2
+      propertyPath: 'array.Array.data[215]'
       value: 
       objectReference: {fileID: 1922879452}
     - target: {fileID: 1866764195893123508, guid: d002b34009a56416da822342d224b79d, type: 3}
