@@ -32,7 +32,6 @@ public class TileRules : ScriptableObject
                 port.OnValidate();
             }
         }
-        //TODO: Validate surface orientation & ports
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(this);
         #endif

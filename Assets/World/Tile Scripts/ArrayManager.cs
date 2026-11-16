@@ -31,21 +31,6 @@ public class ArrayManager : MonoBehaviour
         }
     }
 
-    int RawIndex(int x, int y, int z)
-    {
-        if (!IsValidArrayPosition(new Vector3Int(x, y, z)))
-        {
-            throw new ArgumentOutOfRangeException($"Error in ArrayManager: Indeces out of bounds: ({x}, {y}, {z})");
-        }
-        return x * size.y * size.z + y * size.z + z;
-    }
-
-    GameplayTile GetTile(int x, int y, int z)
-    {
-
-        return array[RawIndex(x, y, z)];
-    }
-
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
