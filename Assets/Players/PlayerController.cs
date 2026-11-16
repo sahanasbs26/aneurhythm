@@ -81,18 +81,17 @@ public class PlayerController : MonoBehaviour
             Debug.LogError("OnMove " + this + ": currentSurface is null");
             return;
         }
-        Debug.Log("Position: " + currentSurface.parent.arrayPosition);
-        Debug.Log("Ports: " + currentSurface.ports);
+        //Debug.Log("Position: " + currentSurface.parent.arrayPosition);
+        //Debug.Log("Ports: " + currentSurface.ports);
         //return;
         Vector2 rawInput = value.Get<Vector2>();
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
         Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
-        Debug.Log(direction);
         if (arrayManager.FindMoveableTarget(currentSurface, direction, out TileSurface targetSurface))
         {
             gridPosition = targetSurface.parent.arrayPosition;
             currentSurface = targetSurface;
-            Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
+            //Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
             
             Quaternion moveDirectionRotation = Quaternion.LookRotation(WorldUtils.ArrayToWorldCoordinates((Vector3)rawInput));
             MovePlayer(gridPosition, currentSurface.mount.offset + worldOffset, currentSurface.mount.rotation * moveDirectionRotation); 

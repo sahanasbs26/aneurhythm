@@ -28,5 +28,5 @@ MonoBehaviour:
       _orientation: 64
     _orientation: 256
     _mount:
-      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _rotation: {x: -0.27059805, y: 0.6532815, z: -0.27059805, w: 0.6532815}
       _offset: {x: 0, y: 0, z: 0}
