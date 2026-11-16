@@ -14,14 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
   _surfaces:
   - _ports:
-    - _height: 0
+    - _heightOffset: 0.5
       _orientation: 1
-    - _height: 0
+    - _heightOffset: 0.5
       _orientation: 2
-    - _height: 0
+    - _heightOffset: 0.5
       _orientation: 4
-    - _height: 0
+    - _heightOffset: 0.5
       _orientation: 8
     _orientation: 16
     _mount:
-      _offset: {x: 0, y: 0, z: 0}
+      _rotation: {x: 0, y: 0, z: 0, w: 0}
+      _offset: {x: 0, y: 0.5, z: 0}

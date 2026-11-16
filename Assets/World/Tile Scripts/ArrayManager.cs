@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -19,8 +18,12 @@ public class ArrayManager : MonoBehaviour
     [SerializeField] PlayerController player1;
     [SerializeField] PlayerController player2;
 
-    GameplayTile[,,] array;
-    GameplayTile[] tiles;
+    //TODO: Add better way of saving coordinates
+    [SerializeField] GameplayTile[] array;
+
+    [SerializeField] Vector3Int size;
+
+    [SerializeField] List<GameplayTile> tiles;
 
     void Awake()
     {
@@ -31,31 +34,55 @@ public class ArrayManager : MonoBehaviour
         }
     }
 
+    int RawIndex(int x, int y, int z)
+    {
+        if (!IsValidArrayPosition(new Vector3Int(x, y, z)))
+        {
+            throw new ArgumentOutOfRangeException($"Error in ArrayManager: Indeces out of bounds: ({x}, {y}, {z})");
+        }
+        return x * size.y * size.z + y * size.z + z;
+    }
+
+    GameplayTile GetTile(int x, int y, int z)
+    {
+
+        return array[RawIndex(x, y, z)];
+    }
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Initialize();
+        //Initialize();
     }
     /// <summary>
     /// Call after level has been completedd to populate array
     /// </summary>
+    [ContextMenu("Initialize")]
     void Initialize()
     {
-        Vector3Int size = gridData.bounds.size;
-        array = new GameplayTile[size.x, size.y, size.z];
+        size = gridData.bounds.size;
+        array = new GameplayTile[size.x * size.y * size.z];
+        tiles = new List<GameplayTile>();
         tilemapLevels = grid.GetComponentsInChildren<Tilemap>(); 
         foreach (Tilemap tilemap in tilemapLevels)
         {
-            tiles = tilemap.GetComponentsInChildren<GameplayTile>();
-            Debug.Log("Found tilemap: " + tilemap.name + " with " + tiles.Length + " tiles");
-            foreach (GameplayTile tile in tiles)
+            GameplayTile[] levelTiles = tilemap.GetComponentsInChildren<GameplayTile>();
+            tiles.AddRange(levelTiles);
+            Debug.Log("Found tilemap: " + tilemap.name + " with " + levelTiles.Length + " tiles");
+            foreach (GameplayTile tile in levelTiles)
             {
                 Vector3Int pos = tile.SetArrayPosition();
+                tile.Initialize();
                 Debug.Log("Found tile at pos: " + pos);
-                array[pos.x, pos.y, pos.z] = tile;
+                array[RawIndex(pos.x, pos.y, pos.z)] = tile;
             }
         }
         SetTileNeighbors();
+
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        #endif
     }
 
     /// <summary>
@@ -64,36 +91,44 @@ public class ArrayManager : MonoBehaviour
     /// </summary>
     public void SetTileNeighbors()
     {
+        Debug.Log("Setting tile neighbors");
         foreach(GameplayTile tile in tiles)
         {
             Vector3Int pos = tile.arrayPosition;
-            HashSet<Vector3Int> targetPositions = new HashSet<Vector3Int>();
+            HashSet<(Vector3Int, DirectionMask)> targetPositions = new HashSet<(Vector3Int, DirectionMask)>();
 
-            //Get possible tile positions based off port orienations
-            foreach(TileSurface surface in tile.rules.surfaces)
+            //Get retrieve "possible" tile positions based on tiles in direction of port orienations
+            foreach(TileSurface surface in tile.surfaces)
             {
+                Debug.Log("\tScanning surfaces of tile @ " + tile.arrayPosition);
                 foreach(TilePort port in surface.ports)
                 {
-                    targetPositions.Add(pos + DirectionMaskUtils.MaskToVector(port.orientation));
+                    Vector3Int targetPos = pos + DirectionMaskUtils.MaskToVector(port.orientation);
+
+                    //! VectorToMaskLenient: Currently set to add any port that is in general direction of port orientation rather than specific direction
+                    // (e.g. N would connect to NE, NW, UN, DN)
+                    targetPositions.Add((targetPos, DirectionMaskUtils.VectorToMaskLenient(targetPos - pos)));
+                    Debug.Log("\t\tFrom " + surface.parent.arrayPosition + ", " + surface.orientation + " found port: " + port.orientation + ", H=" + port.height + ", Target="+targetPos);
                 }
             }
 
-            //Scan every surface and target surface for matching ports
-            foreach (Vector3Int targetPos in targetPositions)
+            //Scan every surface and target surface for matching ports; only searches ports with matching relativeDirection
+            foreach ((Vector3Int targetPos, DirectionMask relativeDirection) in targetPositions)
             {
                 if (!IsValidArrayPosition(targetPos))
                 {
                     Debug.LogWarning("SetTileNeighbors: Invalid tile position scraped at " + targetPos);
                     continue;
                 }
-                GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
+                GameplayTile target = array[RawIndex(targetPos.x, targetPos.y, targetPos.z)];
                 if (target == null) continue;
 
-                foreach (TileSurface surface in tile.rules.surfaces)
+                Debug.Log("\tTarget found @" + targetPos);
+                foreach (TileSurface surface in tile.surfaces)
                 {
-                    foreach(TileSurface targetSurface in target.rules.surfaces)
+                    foreach(TileSurface targetSurface in target.surfaces)
                     {
-                        surface.SetNeighbors(targetSurface);
+                        surface.SetNeighbors(targetSurface, relativeDirection);
                     }
                 }
             }
@@ -103,80 +138,24 @@ public class ArrayManager : MonoBehaviour
     public bool IsValidArrayPosition(Vector3Int pos)
     {
         return
-            pos.x >= 0 && pos.x < array.GetLength(0) &&
-            pos.y >= 0 && pos.y < array.GetLength(1) &&
-            pos.z >= 0 && pos.z < array.GetLength(2);
+            pos.x >= 0 && pos.x < size.x &&
+            pos.y >= 0 && pos.y < size.y &&
+            pos.z >= 0 && pos.z < size.z;
     }
 
     //Determine potential movement targets as all faces in general direction of movement & current tile's exit
     //In a priority order, check whether the player can move in those directions & move if able
-    public bool FindMoveableTarget(Vector3Int currentPos, Vector3 directionVector, DirectionMask surface, out Vector3Int? outTargetPos, out TileSurface? outTileSurface)
+    public bool FindMoveableTarget(TileSurface surface, Vector3 directionVector, out TileSurface outTileSurface)
     {
-        //Default to null if no target is found or on error
-        outTargetPos = null;
+        DirectionMask directionCone = DirectionMaskUtils.VectorToMaskLenient(directionVector);
+        foreach(DirectionMask dir in Enum.GetValues(typeof(DirectionMask))) {
+            if ((directionCone & dir) == 0)                  continue;
+            if (!surface.TryGetPort(dir, out TilePort port)) continue;
+            if (port.neighbor == null)                       continue;
+            outTileSurface = port.neighbor.parentSurface;
+            return true;
+        }
         outTileSurface = null;
-
-        DirectionMask direction = DirectionMaskUtils.VectorToMaskLenient(directionVector);
-
-        //Search for a valid current tile; accepts tiles the player is standing on if their current pos is air==null
-        GameplayTile current = array[currentPos.x, currentPos.y, currentPos.z];
-        if (current == null) {
-            Vector3Int groundPos = currentPos - DirectionMaskUtils.MaskToVector(surface);
-            current = array[groundPos.x, groundPos.y, groundPos.z];
-        }
-        if (current == null)
-        {
-            Debug.LogError("Couldn't find current tile at current{array" + currentPos + ", world" + WorldUtils.ArrayToWorldCoordinates(currentPos) + "}");
-            return false;
-        }
-
-        //Retrieve and check that the surface
-        TileSurface currentSurface;
-        if (!current.rules.TryGetSurface(surface, out currentSurface))
-        {
-            Debug.LogError("Couldn't find surface(" + surface + ") of current tile at current{array" + currentPos + ", world" + WorldUtils.ArrayToWorldCoordinates(currentPos) + "}");
-            return false;
-        }
-
-        //Gather all directions with matching move & port exit directions
-        DirectionMask possibleDirections = 0;
-        foreach(TilePort port in currentSurface.ports)
-        {
-            possibleDirections |= port.orientation & direction;
-        }
-
-        //! Assumes DirectionMasks are ordered in priority
-        foreach(DirectionMask dir in Enum.GetValues(typeof(DirectionMask)))
-        {
-            if ((possibleDirections & dir) == 0) continue;
-            Vector3Int targetPos = currentPos + DirectionMaskUtils.MaskToVector(dir);
-            GameplayTile target = array[targetPos.x, targetPos.y, targetPos.z];
-            //TODO: Handle being above the target block
-            // if (target == null)
-            // {
-            //     Vector3Int groundPos = targetPos - DirectionMaskUtils.MaskToVector(surface);
-            //     target = array[groundPos.x, groundPos.y, groundPos.z];
-            // }
-            if (target == null)
-            {
-                Debug.Log("No tile found at " + targetPos + " (world" + WorldUtils.ArrayToWorldCoordinates(targetPos) + ") looking in direction(" + dir + ")");
-                continue;
-            }
-            foreach (TileSurface targetSurface in target.rules.surfaces)
-            {
-                TilePort targetPort;
-                TilePort currentPort = currentSurface.GetPort(dir); //Current port should have been checked when accumulating possibleDirections
-                if (targetSurface.TryGetPort(DirectionMaskUtils.ReverseMask(dir), out targetPort) && targetPort.height == currentPort.height)
-                {
-                    outTargetPos = targetPos;
-                    outTileSurface = targetSurface;
-
-                    Debug.Log("Found target at " + targetPos + "(world("+ WorldUtils.ArrayToWorldCoordinates(targetPos) + ") with surface orientation " + targetSurface.orientation);
-                    return true;
-                }
-            }
-        }
-        Debug.Log("No ports found");
         return false;
     }
 }

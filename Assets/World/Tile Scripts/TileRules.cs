@@ -15,189 +15,28 @@ public class TileRules : ScriptableObject
 {
 
     [Tooltip("Standable surfaces")]
-    [SerializeField] List<TileSurface> _surfaces;
+    [SerializeField] List<TileSurfaceData> _surfaces;
 
     /// <summary>
     /// List of surfaces the player can stand on. Orientation is normal from the surface.
     /// </summary>
-    public List<TileSurface> surfaces => _surfaces;
-
-    Dictionary<DirectionMask, TileSurface> _surfaceLookup;
-
-    public TileSurface GetSurface(DirectionMask mask)
-    {
-        _surfaceLookup ??= BuildLookup();
-        return _surfaceLookup[mask];
-    }
-
-    public bool TryGetSurface(DirectionMask mask, out TileSurface surface)
-    {
-        _surfaceLookup ??= BuildLookup();
-        return _surfaceLookup.TryGetValue(mask, out surface);
-    }
+    public List<TileSurfaceData> surfaces => _surfaces;
 
     void OnValidate()
     {
-        _surfaceLookup = BuildLookup();
-        foreach(TileSurface surface in surfaces)
+        foreach(TileSurfaceData surface in surfaces)
         {
             surface.OnValidate();
-            foreach (TilePort port in surface.ports)
+            surface.mount.SetAngleForSurface(surface.orientation);
+            foreach (TilePortData port in surface.ports)
             {
                 port.OnValidate();
             }
         }
         //TODO: Validate surface orientation & ports
-    }
-
-    Dictionary<DirectionMask, TileSurface> BuildLookup()
-    {
-        Dictionary<DirectionMask, TileSurface> lookup = new Dictionary<DirectionMask, TileSurface>();
-        foreach (TileSurface surface in _surfaces)
-        {
-            lookup.Add(surface.orientation, surface);
-        }
-        return lookup;
-    }
-
-}
-
-/// <summary>
-/// Contains an orientation (represented by a normal vector/normal cardinal) and ports
-/// Multiple are held by a tile
-/// Player can move between surfaces with matching ports. Disregards surface orientation in favor of port orientations & heights.
-/// Ideally, surface & ports rotate with the physical object.
-/// </summary>
-/// 
-[Serializable]
-public struct TileSurface
-{
-    [Tooltip("Free movement between opposite-facing same-height ports")]
-    [SerializeField] List<TilePort> _ports;
-    public List<TilePort> ports => _ports;
-
-    [Tooltip("Determines how the player stands on the surface")]
-    [SerializeField] DirectionMask _orientation;
-
-    public DirectionMask orientation => _orientation;
-
-    [Tooltip("Determines the visualized position of the player on the surface")]
-    [SerializeField] TileMount _mount;
-    public TileMount mount => _mount;
-
-    Dictionary<DirectionMask, TilePort> _portLookup;
-
-    public TilePort GetPort(DirectionMask mask)
-    {
-        _portLookup ??= BuildLookup();
-        return _portLookup[mask];
-    }
-
-    /// <summary>
-    /// If this surface has a port whose orientation matches the provided DirectionMask, returns true & sets the output parameter. 
-    /// </summary>
-    /// <param name="mask"></param>
-    /// <param name="port"></param>
-    /// <returns></returns>
-    public bool TryGetPort(DirectionMask mask, out TilePort port)
-    {
-        _portLookup ??= BuildLookup();
-        return _portLookup.TryGetValue(mask, out port);
-    }
-
-    /// <summary>
-    /// Sets neighbor ports between this and the provided surface.
-    /// Returns number of neighboring ports found.
-    /// Overrides existing neighbors on this surface and the provided surfaces.
-    /// *Does not check adjacency
-    /// </summary>
-    /// <param name="surface"></param>
-    public int SetNeighbors(TileSurface surface)
-    {
-        int numNeighbors = 0;
-        foreach (TilePort port in ports)
-        {
-            if (surface.TryGetPort(DirectionMaskUtils.ReverseMask(port.orientation), out TilePort neighbor))
-            {
-                port.TrySetNeighbor(neighbor);
-                numNeighbors++;
-            }
-        }
-        return numNeighbors;
-    }
-
-    public void OnValidate()
-    {
-        Debug.Log("Triggered TileSurface OnValidate");
-        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
-        {
-            _orientation = DirectionMask.N;
-            Debug.LogError("Error in TileSurface: orientation must include exactly one direction");
-        } else
-        {
-            _portLookup = BuildLookup();
-            _mount.SetAngleForSurface(_orientation);
-        }
-        //TODO: Validate surface orientation & ports
-    }
-
-    Dictionary<DirectionMask, TilePort> BuildLookup()
-    {
-        Dictionary<DirectionMask, TilePort> lookup = new Dictionary<DirectionMask, TilePort>();
-        foreach (TilePort port in _ports)
-        {
-            lookup.Add(port.orientation, port);
-        }
-        return lookup;
-    }
-    
-}
-
-/// <summary>
-/// Contains an orientation and height
-/// Held by a surface. Multiple may be held.
-/// Player can move between ports that match in height and orientation. 
-/// Disregard local positioning of ports on a tile (aside from height); assume opposite facing ports allow exchange between eachother
-/// </summary>
-[Serializable]
-public class TilePort
-{
-    [Tooltip("Same-height ports allow movement between them")]
-    [SerializeField] float _height;
-    public float height => _height;
-
-    [Tooltip("Opposite-facing ports allow movement between")]
-    [SerializeField] DirectionMask _orientation;
-
-    TilePort neighbor;
-
-    public DirectionMask orientation => _orientation;
-
-    public void OnValidate()
-    {    
-        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
-        {
-            _orientation = DirectionMask.N;
-            Debug.LogError("Error in TilePort: orientation must include exactly one direction");
-        }
-    }
-
-    /// <summary>
-    /// If the provided port matches in height & orientation, sets eachother as neighbors.
-    /// Does not check for adjacency.
-    /// *Overrides existing neighbors.
-    /// </summary>
-    /// <param name="port"></param>
-    /// <returns></returns>
-    public bool TrySetNeighbor(TilePort port)
-    {
-        if (Mathf.Approximately(height, port.height) && (DirectionMaskUtils.ReverseMask(orientation) & port.orientation) != 0)
-        {
-            neighbor = port;
-            port.neighbor = this;
-            return true;
-        }
-        return false;
+        // #if UNITY_EDITOR
+        // UnityEditor.EditorUtility.SetDirty(this);
+        // #endif
     }
 }
 
@@ -512,63 +351,3 @@ public enum DirectionMask : uint //? maybe unnecessary to use short...
     SW = 1 << 16,
     NW = 1 << 17,
 }
-
-/// <summary>
-/// Defines orientation of the player when in the block in WORLD SPACE.
-/// Offsets and angles should therefore be safe to directly apply to player.
-/// !IN WORLD SPACE
-/// </summary>
-///
-[Tooltip("Position of player when in tile IN WORLD SPACE")]
-[Serializable]
-public struct TileMount
-{
-    public static float TILE_HALF_WIDTH = 0.5f;
-    /// <summary>
-    /// Angle in WORLD SPACE to rotate the player when standing.
-    /// Should be able to easily combine with the player's own rotation
-    /// !ANGLE IN WORLD SPACE
-    /// </summary>
-    Quaternion _angle;
-    public Quaternion angle => _angle; 
-
-    /// <summary>
-    /// Position in array space to offset the player when standing
-    /// !OFFSET IN WORLD SPACE
-    /// </summary>
-    [Tooltip("IN WORLD SPACE")]
-    [SerializeField] Vector3 _offset;
-    public Vector3 offset => _offset;
-
-    public void SetAngleForSurface(DirectionMask surface)
-    {
-        _angle = Quaternion.LookRotation(Vector3.right, WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(surface)));
-    }
-
-    public void SetOuterSurfaceMount(DirectionMask surface)
-    {
-        SetAngleForSurface(surface);
-        switch(surface)
-        {
-            case DirectionMask.U:
-                _offset = TILE_HALF_WIDTH * Vector3.up;
-                break;
-            case DirectionMask.D:
-                _offset = TILE_HALF_WIDTH * Vector3.down;
-                break;
-            case DirectionMask.N:
-                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.N));
-                break;
-            case DirectionMask.S:
-                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.S));
-                break;
-            case DirectionMask.W:
-                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.W));
-                break;
-            case DirectionMask.E:
-                _offset = TILE_HALF_WIDTH * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.E));
-                break;
-        }
-    }
-}
-    
