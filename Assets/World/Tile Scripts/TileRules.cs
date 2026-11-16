@@ -1,6 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -13,83 +13,31 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "TileRule", menuName = "Scriptable Objects/TileRule")]
 public class TileRules : ScriptableObject
 {
-    [Tooltip("Faces a player can stand on")]
-    [SerializeField] DirectionMask _surfaceableDirections;
-    [SerializeField] DirectionMask _exitDirections;
-    [SerializeField] DirectionMask _enterDirections;
-    
-    //TODO: If time, add support for going on sides of blocks
-    //[SerializeField] DirectionMask _plane;
 
-    [Tooltip("For \"wall\" tiles. Specifies a surface necessary to enter the tile")]
-    [SerializeField] DirectionMask _requiredSurfaceDirection; 
-    [SerializeField] MountOffset _mountPosition;
+    [Tooltip("Standable surfaces")]
+    [SerializeField] List<TileSurfaceData> _surfaces;
 
     /// <summary>
-    /// Directions relative to this block where player can stand.
-    /// Up means the player can stand on top of the block, 
-    /// North means the player can stand on the northern side of the block.
-    /// *Does not have a custom mask for surfaceable exits: Assumes player can exit towards any other enterable/surfaceble direction.
-    /// *Therefore, a surfaceable direction should always appear as a flat surface.
-    /// To define rules on a surface, add an enterable "wall" tile 
+    /// List of surfaces the player can stand on. Orientation is normal from the surface.
     /// </summary>
-    public DirectionMask surfaceableDirections => _surfaceableDirections;
+    public List<TileSurfaceData> surfaces => _surfaces;
 
-    /// <summary>
-    /// For "wall" tiles or equivalent.
-    /// Surface planes the player needs to stand on when entering this block.
-    /// E.g. For a vertical fence, the player stands on the upward plane of the block below.
-    /// </summary>
-    public DirectionMask requiredSurfaceDirection => _requiredSurfaceDirection; 
-
-    /// <summary>
-    /// Directions player can exit this tile from, relative to this block.
-    /// </summary>
-    public DirectionMask exitDirections => _exitDirections;
-
-    /// <summary>
-    /// Directions player can enter this block from, relative to this block
-    /// </summary>
-    public DirectionMask enterDirections => _enterDirections;
-
-    /// <summary>
-    /// Contains offset and base angle of the player when on this tile.
-    /// </summary>
-    public MountOffset mountPosition => _mountPosition;
-
-    public bool CanEnterFrom(DirectionMask directions) => (_enterDirections & directions) != 0;
-    public bool RequiresSurfaceIn(DirectionMask directions) => (_requiredSurfaceDirection & directions) != 0;
-    public bool RequiresSurface() => _requiredSurfaceDirection == 0;
-    public bool CanSurfaceOn(DirectionMask faceDirections) => (_surfaceableDirections & faceDirections) != 0;
-    public bool CanExitTowards(DirectionMask directions) => (_exitDirections & directions) != 0;
-}
-
-/// <summary>
-/// Contains an orientation (represented by a normal vector/normal cardinal) and ports
-/// Multiple are held by a tile
-/// Player can move between surfaces with matching ports. Disregards surface orientation in favor of port orientations & heights.
-/// Ideally, surface & ports rotate with the physical object.
-/// </summary>
-/// 
-[Serializable]
-public struct TileSurface
-{
-    [SerializeField] List<TilePort> ports;
-    [SerializeField] DirectionMask orientation;
-    
-}
-
-/// <summary>
-/// Contains an orientation and height
-/// Held by a surface. Multiple may be held.
-/// Player can move between ports that match in height and orientation. 
-/// Disregard local positioning of ports on a tile (aside from height); assume opposite facing ports allow exchange between eachother
-/// </summary>
-[Serializable]
-public struct TilePort
-{
-    [SerializeField] float height;
-    [SerializeField] DirectionMask orientation;
+    void OnValidate()
+    {
+        foreach(TileSurfaceData surface in surfaces)
+        {
+            surface.OnValidate();
+            surface.mount.SetAngleForSurface(surface.orientation);
+            foreach (TilePortData port in surface.ports)
+            {
+                port.OnValidate();
+            }
+        }
+        //TODO: Validate surface orientation & ports
+        // #if UNITY_EDITOR
+        // UnityEditor.EditorUtility.SetDirty(this);
+        // #endif
+    }
 }
 
 //TODO: Check destructiveness of maskToVector/vectorToMask functions
@@ -122,6 +70,11 @@ public class DirectionMaskUtils
     };
 
     public static int NUM_DIRECTIONS = 18;
+
+    public static bool ExactlyOneBit(DirectionMask direction)
+    {
+        return (direction > 0) && (direction & (direction - 1)) == 0;
+    }
 
     /// <summary>
     /// Returns a DirectionMask in all the general directions of the given vector.
@@ -162,38 +115,106 @@ public class DirectionMaskUtils
 
     /// <summary>
     /// Returns a DirectionMask in the directions of the given vector points
-    /// TODO: Add support for NE/NW/SE/SW 
     /// E.g. a vector in +x will return a mask in N direction. A vector in +x and +y will return N|E;
     /// </summary>
     /// <param name="direction"></param>
     /// <returns></returns>
     public static DirectionMask VectorToMaskStrict(Vector3 direction)
     {
-        direction = direction.normalized;
-        float cutoff = 1/Mathf.Sqrt(2);
+        if (direction == Vector3.zero) return 0;
+
         DirectionMask mask = 0;
-        if (direction.x >= cutoff)
+        switch( Mathf.Atan2(direction.y, direction.x))
         {
-            mask |= DirectionMask.N;
-        } else if (direction.x <= -cutoff)
-        {
-            mask |= DirectionMask.S;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.W;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.NW;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.N;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.NE;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.E;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.SE;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.S;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.SW;
+                break;
+            default:
+                mask |= DirectionMask.W;
+                break; 
         }
 
-        if (direction.y >= cutoff)
+        switch(Mathf.Atan2(direction.z, direction.x))
         {
-            mask |= DirectionMask.E;
-        } else if (direction.y <= -cutoff)
-        {
-            mask |= DirectionMask.W;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.W;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.UW;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.U;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.UE;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.E;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.DE;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.D;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.DW;
+                break;
+            default:
+                mask |= DirectionMask.W;
+                break; 
         }
 
-        if (direction.z >= cutoff)
+        switch(Mathf.Atan2(direction.z, direction.y))
         {
-            mask |= DirectionMask.U;
-        } else if (direction.z <= -cutoff)
-        {
-            mask |= DirectionMask.D;
+            case >= Mathf.PI * 7f/8:
+                mask |= DirectionMask.S;
+                break;
+            case >= Mathf.PI * 5f/8:
+                mask |= DirectionMask.US;
+                break;
+            case >= Mathf.PI * 3f/8:
+                mask |= DirectionMask.U;
+                break;
+            case >= Mathf.PI / 8:
+                mask |= DirectionMask.UN;
+                break;
+            case >= -Mathf.PI / 8:
+                mask |= DirectionMask.N;
+                break;
+            case >= -Mathf.PI * 3f/8:
+                mask |= DirectionMask.DN;
+                break;
+            case >= -Mathf.PI * 5f/8:
+                mask |= DirectionMask.D;
+                break;
+            case >= -Mathf.PI * 7f/8:
+                mask |= DirectionMask.DS;
+                break;
+            default:
+                mask |= DirectionMask.S;
+                break; 
         }
 
         return mask;
@@ -330,43 +351,3 @@ public enum DirectionMask : uint //? maybe unnecessary to use short...
     SW = 1 << 16,
     NW = 1 << 17,
 }
-
-/// <summary>
-/// Defines orientation of the player when in the block in WORLD SPACE.
-/// Offsets and angles should therefore be safe to directly apply to player.
-/// !IN WORLD SPACE
-/// </summary>
-///
-[Tooltip("Position of player when in tile IN WORLD SPACE")]
-[Serializable]
-public struct MountOffset
-{
-    /// <summary>
-    /// Angle in WORLD SPACE to rotate the player when standing.
-    /// Should be able to easily combine with the player's own rotation
-    /// !ANGLE IN WORLD SPACE
-    /// </summary>
-    [Tooltip("IN WORLD SPACE")]
-    public Quaternion angle;
-
-    /// <summary>
-    /// Position in array space to offset the player when standing
-    /// !OFFSET IN WORLD SPACE
-    /// </summary>
-    [Tooltip("IN WORLD SPACE")]
-    public Vector3 offset;
-
-    /// <summary>
-    /// Calculates angle vector and offset position for a slope.
-    /// Offset is relative to the height of the block
-    /// </summary>
-    /// <param name="direction">Cardinal direction IN ARRAY SPACE players moves in when going up the stairs.</param>
-    /// <param name="slopeAngle">In degrees; angle of the slope to position the player.</param>
-    public void SetSlopeMount(Vector3 direction, float slopeAngle)
-    {
-        direction = WorldUtils.ArrayToWorldCoordinates(direction.normalized);
-        offset = Mathf.Tan(slopeAngle * Mathf.Deg2Rad) * Vector3.up;
-        angle = Quaternion.LookRotation(direction + offset);
-    }
-}
-    

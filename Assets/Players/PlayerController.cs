@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Tilemaps;
 
 public class PlayerController : MonoBehaviour
 {
@@ -13,6 +15,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
     [SerializeField] Vector3 worldOffset;
     [SerializeField] ArrayManager arrayManager;
+    [SerializeReference] TileSurface currentSurface;
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
@@ -23,6 +26,10 @@ public class PlayerController : MonoBehaviour
         transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition) + worldOffset;
     }
 
+    /// <summary>
+    /// Moves player to specified position in array coordinates
+    /// </summary>
+    /// <param name="arrayCoordinates"></param>
     void MovePlayer(Vector3 arrayCoordinates)
     {
         if (moveCoroutine != null)
@@ -30,7 +37,22 @@ public class PlayerController : MonoBehaviour
             StopCoroutine(moveCoroutine);
             transform.position = currentDestination;
         }
-        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates) + worldOffset));
+        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates)));
+    }
+
+    /// <summary>
+    /// Moves player to specified position in array coordinates
+    /// </summary>
+    /// <param name="arrayCoordinates"></param>
+    void MovePlayer(Vector3 arrayCoordinates, Vector3 worldSpaceOffset, Quaternion rotation)
+    {
+        if (moveCoroutine != null)
+        {
+            StopCoroutine(moveCoroutine);
+            transform.position = currentDestination;
+        }
+        transform.rotation = rotation;
+        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates) + worldSpaceOffset));
     }
 
     IEnumerator LerpToPosition(Vector3 worldCoordinates, float moveDuration = defaultMoveTime)
@@ -58,16 +80,29 @@ public class PlayerController : MonoBehaviour
 
     public void OnMove(InputValue value)
     {
+        if (currentSurface == null)
+        {
+            Debug.LogError("OnMove " + this + ": currentSurface is null");
+            return;
+        }
+        Debug.Log("Position: " + currentSurface.parent.arrayPosition);
+        Debug.Log("Ports: " + currentSurface.ports);
+        //return;
         Vector2 rawInput = value.Get<Vector2>();
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
         Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
         Debug.Log(direction);
-        Vector3Int target = arrayManager.FindMoveableTarget(gridPosition, direction, DirectionMask.U);
-        if (gridPosition != target)
+        if (arrayManager.FindMoveableTarget(currentSurface, direction, out TileSurface targetSurface))
         {
-            gridPosition = target;
-            Debug.Log("Moving to array" + gridPosition + " world" + WorldUtils.ArrayToWorldCoordinates(gridPosition));
-            MovePlayer(gridPosition);
+            gridPosition = targetSurface.parent.arrayPosition;
+            currentSurface = targetSurface;
+            Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
+            MovePlayer(gridPosition, currentSurface.mount.offset + worldOffset, currentSurface.mount.rotation); 
         }
+    }
+
+    public static implicit operator string(PlayerController player)
+    {
+        return $"PlayerController(Name=\"{player.name}\")";
     }
 }
