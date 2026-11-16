@@ -15,28 +15,27 @@ public class TileRules : ScriptableObject
 {
 
     [Tooltip("Standable surfaces")]
-    [SerializeField] List<TileSurfaceData> _surfaces;
+    [SerializeField] TileSurfaceData[] _surfaces;
 
     /// <summary>
     /// List of surfaces the player can stand on. Orientation is normal from the surface.
     /// </summary>
-    public List<TileSurfaceData> surfaces => _surfaces;
+    public TileSurfaceData[] surfaces => _surfaces;
 
     void OnValidate()
     {
-        foreach(TileSurfaceData surface in surfaces)
+        for (int i = 0; i < _surfaces.Length; i++)
         {
-            surface.OnValidate();
-            surface.mount.SetAngleForSurface(surface.orientation);
-            foreach (TilePortData port in surface.ports)
+            surfaces[i].OnValidate();
+            foreach (TilePortData port in surfaces[i].ports)
             {
                 port.OnValidate();
             }
         }
         //TODO: Validate surface orientation & ports
-        // #if UNITY_EDITOR
-        // UnityEditor.EditorUtility.SetDirty(this);
-        // #endif
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        #endif
     }
 }
 

@@ -8,7 +8,7 @@ public class GameplayTile : MonoBehaviour
     [SerializeField] TileRules _rules;
     public TileRules rules => _rules;
 
-    List<TileSurface> _surfaces;
+    [SerializeField] List<TileSurface> _surfaces;
 
     /// <summary>
     /// List of surfaces the player can stand on. Orientation is normal from the surface.
@@ -37,6 +37,10 @@ public class GameplayTile : MonoBehaviour
             _surfaces.Add(surface);
             _surfaceLookup.Add(surface.orientation, surface);
         }
+
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        #endif
     }
 
     /// <summary>
