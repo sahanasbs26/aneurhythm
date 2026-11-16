@@ -15,12 +15,12 @@ using UnityEngine;
 public class TileSurface : MonoBehaviour
 {
     [SerializeField] TileSurfaceData data;
-    [SerializeField] List<TilePort> _ports;
-    public List<TilePort> ports => _ports;
+    public Dictionary<DirectionMask, TilePort>.ValueCollection ports => _portLookup.Values;
     public DirectionMask orientation => data.orientation;
     public TileMount mount => data.mount;
 
     [SerializeField] Dictionary<DirectionMask, TilePort> _portLookup;
+
     [SerializeField] GameplayTile _parent;
     public GameplayTile parent => _parent;
 
@@ -64,21 +64,17 @@ public class TileSurface : MonoBehaviour
     {
         this.data = data;
         _parent = parent;
-        _ports = new List<TilePort>();
         _portLookup = new Dictionary<DirectionMask, TilePort>();
         foreach (TilePortData portData in data.ports)
         {
             TilePort port = new TilePort(portData, this);
             //Debug.Log("Adding portData: " + portData.orientation + ", " + portData.height);
-            _ports.Add(port);
             _portLookup.Add(port.orientation, port);
         }
         //Debug.Log("Finished constructing surface");
-    }
-
-    public TilePort GetPort(DirectionMask mask)
-    {
-        return _portLookup[mask];
+        #if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        #endif
     }
 
     /// <summary>
@@ -89,6 +85,7 @@ public class TileSurface : MonoBehaviour
     /// <returns></returns>
     public bool TryGetPort(DirectionMask mask, out TilePort port)
     {
+        if (_portLookup == null) Debug.LogError("Port lookup dictionary is null");
         return _portLookup.TryGetValue(mask, out port);
     }
 
@@ -102,7 +99,7 @@ public class TileSurface : MonoBehaviour
     public int SetNeighbors(TileSurface surface, DirectionMask relativeDirection)
     {
         int numNeighbors = 0;
-        foreach (TilePort port in _ports)
+        foreach (TilePort port in ports)
         {
             if ((port.orientation & relativeDirection) != 0 && surface.TryGetPort(DirectionMaskUtils.ReverseMask(port.orientation), out TilePort neighbor))
             {
@@ -150,6 +147,7 @@ public struct TileSurfaceData
             Debug.LogError("Error in TileSurface: orientation must include exactly one direction");
         } else
         {
+            _mount.SetAngleForSurface(orientation);
             Debug.Log("Set mount rotation: " + _mount.rotation);
         }
     }

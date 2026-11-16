@@ -18,12 +18,9 @@ public class ArrayManager : MonoBehaviour
     [SerializeField] PlayerController player1;
     [SerializeField] PlayerController player2;
 
-    //TODO: Add better way of saving coordinates
-    [SerializeField] GameplayTile[] array;
+    //Only used during initialization; not saved
+    Dictionary<Vector3Int, GameplayTile> tiles;
 
-    [SerializeField] Vector3Int size;
-
-    [SerializeField] List<GameplayTile> tiles;
 
     void Awake()
     {
@@ -32,21 +29,6 @@ public class ArrayManager : MonoBehaviour
             Debug.LogError("Assigned grid does not have a GridData attached. Make sure grid was created using Tools->Generate Grid");
             return;
         }
-    }
-
-    int RawIndex(int x, int y, int z)
-    {
-        if (!IsValidArrayPosition(new Vector3Int(x, y, z)))
-        {
-            throw new ArgumentOutOfRangeException($"Error in ArrayManager: Indeces out of bounds: ({x}, {y}, {z})");
-        }
-        return x * size.y * size.z + y * size.z + z;
-    }
-
-    GameplayTile GetTile(int x, int y, int z)
-    {
-
-        return array[RawIndex(x, y, z)];
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -60,21 +42,22 @@ public class ArrayManager : MonoBehaviour
     [ContextMenu("Initialize")]
     void Initialize()
     {
-        size = gridData.bounds.size;
-        array = new GameplayTile[size.x * size.y * size.z];
-        tiles = new List<GameplayTile>();
+        //Add all tiles to array 
+        tiles = new Dictionary<Vector3Int, GameplayTile>();
         tilemapLevels = grid.GetComponentsInChildren<Tilemap>(); 
         foreach (Tilemap tilemap in tilemapLevels)
         {
             GameplayTile[] levelTiles = tilemap.GetComponentsInChildren<GameplayTile>();
-            tiles.AddRange(levelTiles);
             Debug.Log("Found tilemap: " + tilemap.name + " with " + levelTiles.Length + " tiles");
             foreach (GameplayTile tile in levelTiles)
             {
                 Vector3Int pos = tile.SetArrayPosition();
                 tile.Initialize();
                 Debug.Log("Found tile at pos: " + pos);
-                array[RawIndex(pos.x, pos.y, pos.z)] = tile;
+                if (!tiles.TryAdd(pos, tile))
+                {
+                    Debug.LogError($"Error during map initialization: Multiple tiles found at position {pos}");
+                }
             }
         }
         SetTileNeighbors();
@@ -92,9 +75,8 @@ public class ArrayManager : MonoBehaviour
     public void SetTileNeighbors()
     {
         Debug.Log("Setting tile neighbors");
-        foreach(GameplayTile tile in tiles)
+        foreach((Vector3Int pos, GameplayTile tile) in tiles)
         {
-            Vector3Int pos = tile.arrayPosition;
             HashSet<(Vector3Int, DirectionMask)> targetPositions = new HashSet<(Vector3Int, DirectionMask)>();
 
             //Get retrieve "possible" tile positions based on tiles in direction of port orienations
@@ -105,7 +87,7 @@ public class ArrayManager : MonoBehaviour
                 {
                     Vector3Int targetPos = pos + DirectionMaskUtils.MaskToVector(port.orientation);
 
-                    //! VectorToMaskLenient: Currently set to add any port that is in general direction of port orientation rather than specific direction
+                    //* VectorToMaskLenient: Currently set to add any port that is in general direction of port orientation rather than specific direction
                     // (e.g. N would connect to NE, NW, UN, DN)
                     targetPositions.Add((targetPos, DirectionMaskUtils.VectorToMaskLenient(targetPos - pos)));
                     Debug.Log("\t\tFrom " + surface.parent.arrayPosition + ", " + surface.orientation + " found port: " + port.orientation + ", H=" + port.height + ", Target="+targetPos);
@@ -115,13 +97,7 @@ public class ArrayManager : MonoBehaviour
             //Scan every surface and target surface for matching ports; only searches ports with matching relativeDirection
             foreach ((Vector3Int targetPos, DirectionMask relativeDirection) in targetPositions)
             {
-                if (!IsValidArrayPosition(targetPos))
-                {
-                    Debug.LogWarning("SetTileNeighbors: Invalid tile position scraped at " + targetPos);
-                    continue;
-                }
-                GameplayTile target = array[RawIndex(targetPos.x, targetPos.y, targetPos.z)];
-                if (target == null) continue;
+                if (!tiles.TryGetValue(targetPos, out GameplayTile target)) continue;
 
                 Debug.Log("\tTarget found @" + targetPos);
                 foreach (TileSurface surface in tile.surfaces)
@@ -133,14 +109,6 @@ public class ArrayManager : MonoBehaviour
                 }
             }
         }
-    }
-
-    public bool IsValidArrayPosition(Vector3Int pos)
-    {
-        return
-            pos.x >= 0 && pos.x < size.x &&
-            pos.y >= 0 && pos.y < size.y &&
-            pos.z >= 0 && pos.z < size.z;
     }
 
     //Determine potential movement targets as all faces in general direction of movement & current tile's exit
