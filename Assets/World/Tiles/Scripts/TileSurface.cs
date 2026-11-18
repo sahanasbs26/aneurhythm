@@ -14,12 +14,15 @@ using UnityEngine;
 [Serializable]
 public class TileSurface : MonoBehaviour
 {
-    [SerializeField] TileSurfaceData data;
-    public Dictionary<DirectionMask, TilePort>.ValueCollection ports => _portLookup.Values;
+    public TileRules rules => parent.rules;
+    [SerializeField] private int surfaceIndexInRules;
+    public TileSurfaceData data => rules.surfaces[surfaceIndexInRules];
     public DirectionMask orientation => data.orientation;
+    public DirectionMask gravityPlane => data.gravityPlane;
     public TileMount mount => data.mount;
 
     [SerializeField] Dictionary<DirectionMask, TilePort> _portLookup;
+    public Dictionary<DirectionMask, TilePort>.ValueCollection ports => _portLookup.Values;
 
     [SerializeField] GameplayTile _parent;
     public GameplayTile parent => _parent;
@@ -60,10 +63,11 @@ public class TileSurface : MonoBehaviour
         }
     }
 
-    public void Initialize(TileSurfaceData data, GameplayTile parent)
+    public void Initialize(int surfaceIndex, GameplayTile parent)
     {
-        this.data = data;
         _parent = parent;
+        surfaceIndexInRules = surfaceIndex;
+
         _portLookup = new Dictionary<DirectionMask, TilePort>();
         foreach (TilePortData portData in data.ports)
         {
@@ -133,8 +137,11 @@ public struct TileSurfaceData
 
     [Tooltip("Determines how the player stands on the surface")]
     [SerializeField] DirectionMask _orientation;
-
     public DirectionMask orientation => _orientation;
+
+    [Tooltip("Use to filter which ports the surface can connect to. Can have multiple planes")]
+    [SerializeField] DirectionMask _gravityPlane;
+    public DirectionMask gravityPlane => _gravityPlane;
 
     [Tooltip("Determines the visualized position of the player on the surface")]
     [SerializeField] TileMount _mount;

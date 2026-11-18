@@ -1,12 +1,19 @@
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 public class CameraManager : MonoBehaviour
 {
     [SerializeField] Vector3 rotation = new Vector3(35, 45, 0);
     [SerializeField] Vector3 focusPosition = Vector3.zero;
-    [SerializeField] float cameraDistance = 10.0f; 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] float cameraDistance = 10.0f;
+
+    void OnValidate()
+    {
+        SetPosition();
+    }
+
+    [ContextMenu("Set Position")]
+    void SetPosition()
     {
         Quaternion rotationTransform = Quaternion.Euler(rotation);
         transform.localRotation = Quaternion.Euler(rotation);

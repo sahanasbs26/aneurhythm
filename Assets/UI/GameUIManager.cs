@@ -11,14 +11,15 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] GameObject calibrationPrefab;
     [SerializeField] RectTransform calibrationParent;
     [SerializeField] SongManager songManager;
-    BeatManager beatManager;
-    InputManager gameManager;
+    [SerializeField] BeatManager beatManager;
+    [SerializeField] InputManager inputManager;
+    [SerializeField] PlayerManager playerManager;
 
     GameObject calibrationUI;
 
     void Awake()
     {
-        gameManager = GetComponent<InputManager>();
+        inputManager = GetComponent<InputManager>();
         pauseMenu.gameObject.SetActive(false);
         beatManager = songManager.gameObject.GetComponent<BeatManager>();
     }
@@ -30,12 +31,15 @@ public class GameUIManager : MonoBehaviour
     public void ToggleCalibration()
     {
         if (calibrationUI == null) {
+            Debug.Log("Switching to calibrationUI");
             calibrationUI = Instantiate(calibrationPrefab, calibrationParent);
-            gameManager.SwitchToCalibrationControls();
+            inputManager.calibrationManager = calibrationUI.GetComponentInChildren<CalibrationBeatManager>();
             pauseMenu.gameObject.SetActive(false);
+            Debug.Log("Inputmanager null?: " + inputManager == null);
+            inputManager.SwitchToCalibrationControls();
         } else
         {
-            gameManager.SwitchToUiControls(); //! Assumes player exits into another menu
+            inputManager.SwitchToUiControls(); //! Assumes player exits into another menu
             Destroy(calibrationUI);
         }
     }
@@ -51,11 +55,21 @@ public class GameUIManager : MonoBehaviour
         }  
     }
 
+    public void Restart()
+    {
+
+        pauseMenu.gameObject.SetActive(false);
+        inputManager.SwitchToGameplayControls();
+        songManager.OnRestart();
+        beatManager.OnStart();
+        playerManager.OnRestart();
+    }
+
     void OnPause()
     {
         pauseMenu.gameObject.SetActive(true);
         songManager.OnPause();
-        gameManager.SwitchToUiControls();
+        inputManager.SwitchToUiControls();
         if (calibrationUI != null) ToggleCalibration();
     }
 
@@ -63,7 +77,7 @@ public class GameUIManager : MonoBehaviour
     {
         pauseMenu.gameObject.SetActive(false);
         songManager.OnResume();
-        gameManager.SwitchToGameplayControls();
+        inputManager.SwitchToGameplayControls();
 
     }
 

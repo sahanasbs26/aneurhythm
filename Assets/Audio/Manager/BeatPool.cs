@@ -49,6 +49,6 @@ public class BeatPool : MonoBehaviour
 
     void OnDestroyPooledObject(Beat beat)
     {
-        Destroy(beat.gameObject);
+        if (beat != null) Destroy(beat.gameObject);
     }
 }

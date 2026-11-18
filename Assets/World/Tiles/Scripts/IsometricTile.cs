@@ -30,10 +30,11 @@ public class GameplayTile : MonoBehaviour
         }
         _surfaces = new List<TileSurface>();
         _surfaceLookup = new Dictionary<DirectionMask, TileSurface>();
-        foreach (TileSurfaceData surfaceData in _rules.surfaces)
+        for (int i = 0; i < _rules.surfaces.Length; i++)
         {
             TileSurface surface = transform.AddComponent<TileSurface>();
-            surface.Initialize(surfaceData, this);
+            //surface.name = "TileSurface" + surface.orientation;
+            surface.Initialize(i, this);
             _surfaces.Add(surface);
             _surfaceLookup.Add(surface.orientation, surface);
         }

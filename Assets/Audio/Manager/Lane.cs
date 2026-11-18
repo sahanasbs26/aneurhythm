@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.UI;
 
 /// <summary>
@@ -45,6 +43,10 @@ public class Lane : MonoBehaviour
         return queue.Peek();
     }
 
+    /// <summary>
+    /// Returns beat spacing in canvas pixel units. 
+    /// </summary>
+    /// <returns></returns>
     public float GetRawSpacing()
     {
         return beatSpacingFraction * (endPos - startPos).magnitude;
@@ -111,5 +113,16 @@ public class Lane : MonoBehaviour
     {
         if (IsEmpty()) return;
         pool.Release(queue.Dequeue());
+    }
+
+    /// <summary>
+    /// Dequeues all beats
+    /// </summary>
+    public void Clear()
+    {
+        while (!IsEmpty())
+        {
+            pool.Release(queue.Dequeue());
+        }
     }
 }

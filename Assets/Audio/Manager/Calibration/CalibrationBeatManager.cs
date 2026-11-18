@@ -67,7 +67,7 @@ public class CalibrationBeatManager : BeatManager
         delayField.text = inputAudioDelay.ToString("F3");
     }
 
-    void OnHit(InputValue value)
+    public void OnHit(InputValue value)
     {
         if(player1.IsEmpty()) return;
         Debug.Log("Error (ms): " + NearestBeatError(player1) * 1000);
@@ -102,7 +102,7 @@ public class CalibrationBeatManager : BeatManager
     /// Called when the user presses left/right or a/d to change the delay (by moving the baseline indicator bar)
     /// </summary>
     /// <param name="value"></param>
-    void OnMoveDelay(InputValue value)
+    public void OnMoveDelay(InputValue value)
     {
         delayChange = delayChangePerMovement * value.Get<Vector2>().x;
     }

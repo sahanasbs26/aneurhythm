@@ -1,10 +1,11 @@
-using System;
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Tilemaps;
 
+/// <summary>
+/// Controls movement of an individual player
+/// Needs an attached PlayerManager object
+/// </summary>
 public class PlayerController : MonoBehaviour
 {
     [Tooltip("If true, will control player 2, otherwise controls player 1")]
@@ -14,24 +15,37 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
     [SerializeField] Vector3 worldOffset;
-    [SerializeField] ArrayManager arrayManager;
-    [SerializeReference] TileSurface currentSurface;
+    [SerializeReference] TileSurface startingSurface;
+    TileSurface currentSurface;
+    [SerializeField] PlayerManager playerManager;
+    ArrayManager arrayManager => playerManager.arrayManager;
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
     Vector3 currentDestination;
     Quaternion currentRotationDestination;
 
+    void Awake()
+    {
+        if (!IsValid()) return;
+    }
+
     void Start()
     {
-        transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition) + worldOffset;
+        OnStart();
+    }
+
+    public void OnStart()
+    {
+        currentSurface = startingSurface;
+        MoveToStartingSurface();
     }
 
     /// <summary>
     /// Moves player to specified position in array coordinates
     /// </summary>
     /// <param name="arrayCoordinates"></param>
-    void MovePlayer(Vector3 arrayCoordinates, Vector3 worldSpaceOffset, Quaternion rotation)
+    void MovePlayer(Vector3 worldPosition, Quaternion rotation)
     {
         if (moveCoroutine != null)
         {
@@ -39,9 +53,12 @@ public class PlayerController : MonoBehaviour
             transform.position = currentDestination;
             transform.rotation = currentRotationDestination;
         }
-        moveCoroutine = StartCoroutine(LerpToPosition(WorldUtils.ArrayToWorldCoordinates(arrayCoordinates) + worldSpaceOffset, rotation));
+        moveCoroutine = StartCoroutine(LerpToPosition(worldPosition, rotation));
     }
 
+    /// <summary>
+    /// Interpolates movement to a new position and rotation. Call as a coroutine.
+    /// </summary>
     IEnumerator LerpToPosition(Vector3 worldCoordinates, Quaternion rotation, float moveDuration = defaultMoveTime)
     {
         float elapsedTime = 0;
@@ -74,6 +91,9 @@ public class PlayerController : MonoBehaviour
         moveCoroutine = null;
     }
 
+    /// <summary>
+    /// Translates an InputValue to a player movement
+    /// </summary>
     public void OnMove(InputValue value)
     {
         if (currentSurface == null)
@@ -94,7 +114,44 @@ public class PlayerController : MonoBehaviour
             //Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
             
             Quaternion moveDirectionRotation = Quaternion.LookRotation(WorldUtils.ArrayToWorldCoordinates((Vector3)rawInput));
-            MovePlayer(gridPosition, currentSurface.mount.offset + worldOffset, currentSurface.mount.rotation * moveDirectionRotation); 
+            MovePlayer(
+                WorldUtils.ArrayToWorldCoordinates(gridPosition) + currentSurface.mount.offset + worldOffset, 
+                currentSurface.mount.rotation * moveDirectionRotation
+                ); 
+        }
+    }
+
+    /// <summary>
+    /// Checks whether serialized fields are set properly
+    /// </summary>
+    bool IsValid()
+    {
+        bool isError = false;
+        if (playerManager == null)
+        {
+            Debug.LogError($"Error in {(string)this}: playerManager is not assigned");
+            isError = true;
+        }
+        if (startingSurface == null)
+        {
+            Debug.LogError($"Error in {(string)this}: startingSurface is not assigned");
+            isError = true;
+        }
+        return isError;
+    }
+
+    void OnValidate()
+    {
+        MoveToStartingSurface();
+    }
+
+    void MoveToStartingSurface()
+    {
+        if (startingSurface != null && gridPosition != startingSurface.parent.arrayPosition)
+        {
+            gridPosition = startingSurface.parent.arrayPosition;
+            transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition) + startingSurface.mount.offset + worldOffset;
+            transform.rotation = startingSurface.mount.rotation;
         }
     }
 

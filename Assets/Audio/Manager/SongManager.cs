@@ -18,6 +18,9 @@ public class SongManager : MonoBehaviour
     [Tooltip("Beats per minute. A 'beat' should be the subdivision in the key signature. (E.g. in 3/8 a beat should be an eight note)")]
     [SerializeField] public double bpm;
 
+    [Tooltip("Beats per loop of the song")]
+    [SerializeField] public double beatsPerLoop;
+
     [Tooltip("Should be the numerator in the key signature")]
     [SerializeField] public int beatsPerMeasure;
 
@@ -36,7 +39,6 @@ public class SongManager : MonoBehaviour
 
     double pauseTime = double.NegativeInfinity; //Use as floor for the timeInSong, negative so beats don't populate on start
     double _pauseDspTime;
-    float _pauseSongTime;
 
     double _pauseDuration = 0;
     bool paused = false;
@@ -54,7 +56,6 @@ public class SongManager : MonoBehaviour
     /// </summary>
     public double beatInSong => timeInSong / _timePerBeat - pickupBeats;
     
-    public double beatsPerLoop;
 
     /// <summary>
     /// Beats since the start of the current loop. Zero indexed.
@@ -95,7 +96,6 @@ public class SongManager : MonoBehaviour
         if (paused) return;
         pauseTime = timeInSong;
         _pauseDspTime = AudioSettings.dspTime;
-        _pauseSongTime = audioSource.time;
         audioSource.Stop();
         paused = true;
     }
@@ -108,6 +108,17 @@ public class SongManager : MonoBehaviour
         audioSource.time = (float)Math.Max(pauseTime, 0) % audioSource.clip.length;
         audioSource.PlayScheduled(scheduledResumeTime + (pauseTime < 0 ? -pauseTime : 0)); //Add back time if paused before song started
         paused = false;
+    }
+
+    public void OnRestart()
+    {
+        paused = false;
+        _pauseDuration = 0;
+        _startTime = startDelay + AudioSettings.dspTime;
+        pauseTime = double.NegativeInfinity;
+        _pauseDspTime = 0;
+        audioSource.time = 0;
+        audioSource.PlayScheduled(_startTime);
     }
 
 

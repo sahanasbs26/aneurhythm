@@ -12,11 +12,8 @@ public class ArrayManager : MonoBehaviour
     public Grid grid;
     public GridData gridData;
 
-    [SerializeField]
+    [SerializeField, HideInInspector]
     Tilemap[] tilemapLevels;
-
-    [SerializeField] PlayerController player1;
-    [SerializeField] PlayerController player2;
 
     //Only used during initialization; not saved
     Dictionary<Vector3Int, GameplayTile> tiles;
@@ -125,5 +122,20 @@ public class ArrayManager : MonoBehaviour
         }
         outTileSurface = null;
         return false;
+    }
+
+    /// <summary>
+    /// Adds a tilemap level at a specified height
+    /// </summary>
+    public static void AddTileMapLevel(Transform parent, int height)
+    {
+        GameObject level = new GameObject("Level " + height);
+        Tilemap tilemap = level.AddComponent<Tilemap>();
+
+        tilemap.orientation = Tilemap.Orientation.XZ;
+        level.AddComponent<TilemapRenderer>();
+        level.transform.position = Vector3.up * height;
+
+        level.transform.SetParent(parent, false);
     }
 }

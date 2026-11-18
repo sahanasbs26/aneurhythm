@@ -17,6 +17,7 @@ public class TilePort
     public float height => _height;
     public float heightOffset => data.heightOffset;
     public DirectionMask orientation => data.orientation;
+    public DirectionMask gravityPlane => _parentSurface.gravityPlane;
 
     [SerializeReference] TilePort _neighbor;
     public TilePort neighbor => _neighbor;
@@ -41,7 +42,7 @@ public class TilePort
     /// <returns></returns>
     public bool TrySetNeighbor(TilePort port)
     {
-        if (Mathf.Approximately(height, port.height) && ((DirectionMaskUtils.ReverseMask(orientation) & port.orientation) != 0))
+        if (Mathf.Approximately(height, port.height) && ((DirectionMaskUtils.ReverseMask(orientation) & port.orientation) != 0) && (gravityPlane & port.gravityPlane) != 0)
         {
             Debug.Log($"Found match from {(string)this}@{(string)parentSurface} to {(string)port}@{(string)port.parentSurface}");
             _neighbor = port;

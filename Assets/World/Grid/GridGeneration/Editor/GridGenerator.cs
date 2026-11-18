@@ -61,14 +61,7 @@ public class GridGenerator : Editor
         //Add tilemap levels
         for (int i = 0; i < gridData.height; i++)
         {
-            GameObject level = new GameObject("Level " + i);
-            Tilemap tilemap = level.AddComponent<Tilemap>();
-
-            tilemap.orientation = Tilemap.Orientation.XZ;
-            level.AddComponent<TilemapRenderer>();
-            level.transform.position = Vector3.up * i;
-
-            level.transform.SetParent(obj.transform, false);
+            ArrayManager.AddTileMapLevel(obj.transform, i);
         }
     }
 

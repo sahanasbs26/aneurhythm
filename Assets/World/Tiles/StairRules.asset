@@ -10,19 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
-  m_Name: Solid Block
+  m_Name: StairRules
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
   _surfaces:
   - _ports:
-    - _heightOffset: 0.5
-      _orientation: 1
-    - _heightOffset: 0.5
-      _orientation: 2
-    - _heightOffset: 0.5
+    - _heightOffset: -0.5
       _orientation: 4
     - _heightOffset: 0.5
+      _orientation: 1
+    - _heightOffset: 0
+      _orientation: 2
+    - _heightOffset: 0
       _orientation: 8
-    _orientation: 16
+    - _heightOffset: -0.5
+      _orientation: 4096
+    - _heightOffset: 0.5
+      _orientation: 64
+    _orientation: 256
+    _gravityPlane: 16
     _mount:
-      _rotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-      _offset: {x: 0, y: 0.5, z: 0}
+      _rotation: {x: -0.27059805, y: 0.6532815, z: -0.27059805, w: 0.6532815}
+      _offset: {x: 0, y: 0, z: 0}

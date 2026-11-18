@@ -1,13 +1,10 @@
 using System;
-using System.Reflection.Emit;
-using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
 /// Controls visual beat icons
 /// Should be attached to same gameObject as SongManager
-/// ?Handling of interactions & hence carrying of beatData might be better suited to be handeled by SongManager
 /// </summary>
 public class BeatManager : MonoBehaviour
 {
@@ -62,15 +59,19 @@ public class BeatManager : MonoBehaviour
 
     void Start()
     {
-        patternIndex = 0;
-        patternLoop = 0;
-        nextBeat = beatPattern[patternIndex % beatPattern.Length].positionInBeats;
+        OnStart();
     }
 
-    double delay;
+    public void OnStart()
+    {
+        patternIndex = 0;
+        patternLoop = 0;
+        nextBeat = 0;
+        foreach (Lane lane in lanes) lane.Clear();
+    }
+
     void Update()
     {
-        delay = CalibrationBeatManager.audioDelay;
         double delayBeats = CalibrationBeatManager.audioDelay / songManager.timePerBeat;
         double now = songManager.beatInSong;
         double lookahead = 1 / beatSpacingFraction + beatSpacingFraction + Math.Max(0, -delayBeats);
@@ -110,32 +111,6 @@ public class BeatManager : MonoBehaviour
     /// To be overridden by a child class, executed at the end of Update() in BeatManager()
     /// </summary>
     protected virtual void OnUpdate() {}
-
-    protected void OnMovePlayer1(InputValue value)
-    {
-        float error;
-        if (HitBeat(player1, out error))
-        {
-            Debug.Log("Hit: P1");
-        } else
-        {
-            Debug.Log("Misstep: P1");
-        }
-        Debug.Log("Error (ms): " + error * 1000);
-    }
-
-    void OnMovePlayer2(InputValue value)
-    {
-        float error;
-        if (HitBeat(player2, out error))
-        {
-            Debug.Log("Hit: P2");
-        } else
-        {
-            Debug.Log("Misstep: P2");
-        }
-        Debug.Log("Error (ms): " + error * 1000);
-    }
     
     /// <summary>
     /// Checks if the next beat in the queue has played within missedBeatWindow. 
@@ -155,6 +130,18 @@ public class BeatManager : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Checks if the next beat in the queue has played within missedBeatWindow. 
+    /// If it has played, despawn beat and return true. Otherwise return false.
+    /// Does not check if queue is null, but checks if empty.
+    /// </summary>
+    /// <param name="error"> Error in seconds </param>
+    /// <returns> Whether or not hit was successful </returns>
+    public bool HitBeat(PlayerManager.PlayerID player, out float error)
+    {
+        return HitBeat(player == PlayerManager.PlayerID.P1 ? player1 : player2, out error);
     }
 
     /// <summary>
