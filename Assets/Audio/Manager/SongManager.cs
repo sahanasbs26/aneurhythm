@@ -27,6 +27,7 @@ public class SongManager : MonoBehaviour
     [Tooltip("Delay in seconds after Start() for audio to start playing. Should be at least 0.5s to pad software delays")]
     [SerializeField] public double startDelay = 1.0; //in seconds
     [SerializeField] public double resumeDelay = 1.0;
+    BeatManager beatManager;
 
     double _timePerBeat;
     public double timePerBeat => _timePerBeat;
@@ -80,6 +81,10 @@ public class SongManager : MonoBehaviour
             Debug.LogWarning("Audio source not assigned in Inspector. Searching for one using GetComponent");
             audioSource = GetComponent<AudioSource>();
         }
+        if (!TryGetComponent<BeatManager>(out beatManager))
+        {
+            Debug.LogError("Error in SongManager: Beat manager and songmanager not attached to the same GameObject");
+        }
     }
 
     //Starts audio on start after scheduled time
@@ -119,26 +124,27 @@ public class SongManager : MonoBehaviour
         _pauseDspTime = 0;
         audioSource.time = 0;
         audioSource.PlayScheduled(_startTime);
+        beatManager.OnStart();
     }
 
 
-    //Set variables continously for debugging purposes.
-    double _timeInSong;
-    double _beatInSong;   
-    double _beatInLoop;
-    double _loopNumber;
-    double _measureInSong;
-    /*
-    void Update()
-    {
-        _beatInSong = beatInSong;
-        _timeInSong = timeInSong;
-        _measureInSong = measureInSong;
-        if (audio.loop)
-        {
-            _loopNumber = loopNumber;
-            _beatInLoop = beatInLoop;
-        }
-    }
-    */
+//     //Set variables continously for debugging purposes.
+//     double _timeInSong;
+//     double _beatInSong;   
+//     double _beatInLoop;
+//     double _loopNumber;
+//     double _measureInSong;
+    
+//     void Update()
+//     {
+//         _beatInSong = beatInSong;
+//         _timeInSong = timeInSong;
+//         _measureInSong = measureInSong;
+//         if (audio.loop)
+//         {
+//             _loopNumber = loopNumber;
+//             _beatInLoop = beatInLoop;
+//         }
+//     }
+    
 }

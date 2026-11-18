@@ -114,9 +114,12 @@ public class ArrayManager : MonoBehaviour
     {
         DirectionMask directionCone = DirectionMaskUtils.VectorToMaskLenient(directionVector);
         foreach(DirectionMask dir in Enum.GetValues(typeof(DirectionMask))) {
-            if ((directionCone & dir) == 0)                  continue;
-            if (!surface.TryGetPort(dir, out TilePort port)) continue;
-            if (port.neighbor == null)                       continue;
+            if (
+                (directionCone & dir) == 0 ||                  
+                !surface.TryGetPort(dir, out TilePort port) ||
+                port.neighbor == null ||                       
+                !port.neighbor.parentSurface.CanEnter(dir)
+                ) continue;
             outTileSurface = port.neighbor.parentSurface;
             return true;
         }

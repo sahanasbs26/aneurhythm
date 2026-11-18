@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Contains an orientation (represented by a normal vector/normal cardinal) and ports
@@ -27,24 +27,32 @@ public class TileSurface : MonoBehaviour
     [SerializeField] GameplayTile _parent;
     public GameplayTile parent => _parent;
 
+    /// <summary>
+    /// Invoked whenever 
+    /// </summary>
+    public UnityEvent<TilePort> onEnter;
+
     void OnDrawGizmos()
     {
-        DrawConnectedPorts();
-        // if (ports != null)
-        // {
-        //     foreach (TilePort port in ports)
-        //     {
-        //         if (port.neighbor != null)
-        //         {
-        //             Vector3 boundry = (Vector3)port.neighbor.parentSurface.parent.arrayPosition + (Vector3)DirectionMaskUtils.MaskToVector(port.neighbor.orientation) * 0.5f + new Vector3(0, 0, 1) * port.neighbor.height;
-        //             Vector3 closeBoundry = (Vector3)parent.arrayPosition - (Vector3)DirectionMaskUtils.MaskToVector(port.orientation) * 0f + new Vector3(0, 0, 1) * port.height;
-        //             Vector3 offset = new Vector3(0.5f, 0.5f, 0.5f);
-        //             Gizmos.DrawSphere(WorldUtils.ArrayToWorldCoordinates(0.5f * (boundry+closeBoundry)) + offset, 0.2f);
-        //             Vector3 position = port.neighbor.parentSurface.parent.arrayPosition + port.neighbor.heightOffset * (Vector3)(DirectionMaskUtils.MaskToVector(port.neighbor.parentSurface.orientation) + DirectionMaskUtils.MaskToVector(port.neighbor.orientation));
-        //             Gizmos.DrawLine(WorldUtils.ArrayToWorldCoordinates(parent.arrayPosition + port.heightOffset * (Vector3)(DirectionMaskUtils.MaskToVector(orientation) + DirectionMaskUtils.MaskToVector(port.orientation)) + offset), WorldUtils.ArrayToWorldCoordinates(position + offset));
-        //         }
-        //     }
-        // }      
+        DrawConnectedPorts();   
+    }
+
+    /// <summary>
+    /// Can be overriden to add runtime enter conditions 
+    /// </summary>
+    /// <param name="direction">Direction of the player/port entering to this surface</param>
+    /// <returns></returns>
+    public virtual bool CanEnter(DirectionMask direction)
+    {
+        return true;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public virtual void OnEnter(TilePort entryPort)
+    {
+        onEnter.Invoke(entryPort);
     }
 
     public void DrawConnectedPorts()

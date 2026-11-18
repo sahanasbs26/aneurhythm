@@ -61,7 +61,6 @@ public class GameUIManager : MonoBehaviour
         pauseMenu.gameObject.SetActive(false);
         inputManager.SwitchToGameplayControls();
         songManager.OnRestart();
-        beatManager.OnStart();
         playerManager.OnRestart();
     }
 
