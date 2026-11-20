@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -11,10 +10,12 @@ using UnityEngine.InputSystem;
 public class PlayerManager : MonoBehaviour
 {
     [SerializeField] BeatManager beatManager;
-    [SerializeField] public ArrayManager arrayManager;
     [SerializeField] PlayerController player1;
     [SerializeField] PlayerController player2;
     [SerializeField] int startingLives = 3;
+
+    [Tooltip("For debugging; if true allows the player to move off beat")]
+    [SerializeField] bool bypassBeatCheck = false;
     int lives;
 
     public enum PlayerID {P1, P2};
@@ -33,7 +34,7 @@ public class PlayerManager : MonoBehaviour
     public void OnMove(InputValue value, PlayerID player)
     {
         float error;
-        if (beatManager.HitBeat(player, out error))
+        if (bypassBeatCheck || beatManager.HitBeat(player, out error))
         {
             (player == PlayerID.P1 ? player1 : player2).OnMove(value);
         } else
@@ -54,11 +55,6 @@ public class PlayerManager : MonoBehaviour
     bool isValid()
     {
         bool isError = false;
-        if (arrayManager == null)
-        {
-            Debug.LogError($"Error in {(string)this}: arrayManager is not assigned");
-            isError = true;
-        }
         if (beatManager == null)
         {
             Debug.LogError($"Error in {(string)this}: beatManager is not assigned");

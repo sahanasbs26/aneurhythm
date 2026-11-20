@@ -13,12 +13,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] bool isPlayer2 = false;
     public const float defaultMoveTime = 0.1f;
 
-    [SerializeField] Vector3Int gridPosition = Vector3Int.zero;
-    [SerializeField] Vector3 worldOffset;
+    [SerializeField] Vector3 basePosition = Vector3Int.zero;
+    [SerializeField] Vector3 baseOffset = new(0.5f, 1, 0.5f);
+    Vector3 totalOffset;
     [SerializeReference] TileSurface startingSurface;
     TileSurface currentSurface;
     [SerializeField] PlayerManager playerManager;
-    ArrayManager arrayManager => playerManager.arrayManager;
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
@@ -107,15 +107,16 @@ public class PlayerController : MonoBehaviour
         Vector2 rawInput = value.Get<Vector2>();
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
         Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
-        if (arrayManager.FindMoveableTarget(currentSurface, direction, out TileSurface targetSurface))
+        if (ArrayManager.FindMoveableTarget(currentSurface, direction, out TileSurface targetSurface))
         {
-            gridPosition = targetSurface.parent.arrayPosition;
             currentSurface = targetSurface;
+            basePosition = targetSurface.transform.position;
+            totalOffset = baseOffset + targetSurface.mount.offset;
             //Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
             
             Quaternion moveDirectionRotation = Quaternion.LookRotation(WorldUtils.ArrayToWorldCoordinates((Vector3)rawInput));
             MovePlayer(
-                WorldUtils.ArrayToWorldCoordinates(gridPosition) + currentSurface.mount.offset + worldOffset, 
+                basePosition + totalOffset, 
                 currentSurface.mount.rotation * moveDirectionRotation
                 ); 
         }
@@ -147,10 +148,11 @@ public class PlayerController : MonoBehaviour
 
     void MoveToStartingSurface()
     {
-        if (startingSurface != null && gridPosition != startingSurface.parent.arrayPosition)
+        if (startingSurface != null && basePosition != startingSurface.transform.position)
         {
-            gridPosition = startingSurface.parent.arrayPosition;
-            transform.position = WorldUtils.ArrayToWorldCoordinates(gridPosition) + startingSurface.mount.offset + worldOffset;
+            basePosition = startingSurface.transform.position;
+            totalOffset = baseOffset + startingSurface.mount.offset;
+            transform.position = basePosition + totalOffset;
             transform.rotation = startingSurface.mount.rotation;
         }
     }

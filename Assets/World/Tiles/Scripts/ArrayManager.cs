@@ -110,7 +110,7 @@ public class ArrayManager : MonoBehaviour
 
     //Determine potential movement targets as all faces in general direction of movement & current tile's exit
     //In a priority order, check whether the player can move in those directions & move if able
-    public bool FindMoveableTarget(TileSurface surface, Vector3 directionVector, out TileSurface outTileSurface)
+    public static bool FindMoveableTarget(TileSurface surface, Vector3 directionVector, out TileSurface outTileSurface)
     {
         DirectionMask directionCone = DirectionMaskUtils.VectorToMaskLenient(directionVector);
         foreach(DirectionMask dir in Enum.GetValues(typeof(DirectionMask))) {
