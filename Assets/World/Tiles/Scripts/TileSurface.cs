@@ -48,7 +48,8 @@ public class TileSurface : MonoBehaviour
     }
 
     /// <summary>
-    /// 
+    /// Invokes onEnter event, passing as a parameter the port on this surface the player is entering.
+    /// E.g. if the player moves north onto this surface, they are entering the southern port of the surface.
     /// </summary>
     public virtual void OnEnter(TilePort entryPort)
     {

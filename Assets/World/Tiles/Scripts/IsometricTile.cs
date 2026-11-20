@@ -21,6 +21,11 @@ public class GameplayTile : MonoBehaviour
         //Initialize();
     }
 
+    /// <summary>
+    /// Initializes surfaces & ports of the tiles based on this object's TileRules.
+    /// Calls AddSurface to create a surface on the object; override with an AddComponent of the specific type of tilesurface if necessary.
+    /// Automatically calls the Initialize function on the added surface.
+    /// </summary>
     public void Initialize()
     {
         TileSurface[] surfaces = transform.GetComponents<TileSurface>();
@@ -32,7 +37,7 @@ public class GameplayTile : MonoBehaviour
         _surfaceLookup = new Dictionary<DirectionMask, TileSurface>();
         for (int i = 0; i < _rules.surfaces.Length; i++)
         {
-            TileSurface surface = transform.AddComponent<TileSurface>();
+            TileSurface surface = AddSurface();
             //surface.name = "TileSurface" + surface.orientation;
             surface.Initialize(i, this);
             _surfaces.Add(surface);
@@ -42,6 +47,12 @@ public class GameplayTile : MonoBehaviour
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(this);
         #endif
+    }
+
+
+    public virtual TileSurface AddSurface()
+    {
+        return transform.AddComponent<TileSurface>(); 
     }
 
     /// <summary>

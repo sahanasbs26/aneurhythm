@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b71f557f81024642b2a240e745feec9, type: 3}
-  m_Name: StairRules
+  m_Name: NorthFacingStair
   m_EditorClassIdentifier: Assembly-CSharp::TileRules
   _surfaces:
   - _ports:

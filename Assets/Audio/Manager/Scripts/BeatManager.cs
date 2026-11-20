@@ -30,7 +30,7 @@ public class BeatManager : MonoBehaviour
     double nextBeat;
     // Index in the beat pattern of the next beat to spawn
     int patternIndex;
-    // How many times the beat patter nhas looped
+    // How many times the beat pattern has looped
     int patternLoop;
 
     void Awake()
