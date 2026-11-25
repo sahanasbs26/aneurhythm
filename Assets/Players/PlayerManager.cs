@@ -48,8 +48,8 @@ public class PlayerManager : MonoBehaviour
     {
         //TODO: Move players to starting tile
         lives = startingLives;
-        player1.OnStart();
-        player2.OnStart();
+        player1.Initialize();
+        player2.Initialize();
     }
 
     bool isValid()

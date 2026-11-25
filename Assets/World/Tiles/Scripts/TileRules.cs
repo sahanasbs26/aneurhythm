@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Contains position, mounting, and exit/enter/surface rules of a tile.
 /// Other tiles should inherit from this one.
-/// All coordinates are relative to "array" space, as (x, y, z) = (N, E, U) = (forward, right, up).
+/// All coordinates are relative to cartesian coordinate space, as (x, y, z) = (E, N, U) = (forward, right, up).
 /// "Surfacing" means a player can walk on the periphery of the tile (e.g. on top).
 /// "Entering" means a player can walk into this tile position.
 /// </summary>
@@ -23,231 +23,245 @@ public class TileRules : ScriptableObject
 
     void OnValidate()
     {
-        for (int i = 0; i < _surfaces.Length; i++)
+        if (_surfaces == null)
         {
-            surfaces[i].OnValidate();
-            foreach (TilePortData port in surfaces[i].ports)
+            Debug.LogError("Error in TileRules: List of surfaces is empty");
+            return;
+        } 
+        for (int surfaceIndex = 0; surfaceIndex < _surfaces.Length; surfaceIndex++)
+        {
+            surfaces[surfaceIndex].OnValidate();
+            for (int portIndex = 0; portIndex < surfaces[surfaceIndex].ports.Count; portIndex++)
             {
-                port.OnValidate();
+                surfaces[surfaceIndex].ports[portIndex].OnValidate();
             }
         }
-        #if UNITY_EDITOR
-        UnityEditor.EditorUtility.SetDirty(this);
-        #endif
     }
 }
 
 //TODO: Check destructiveness of maskToVector/vectorToMask functions
-public class DirectionMaskUtils
+
+public class Directions
 {
-    public static Dictionary<DirectionMask, int> bitPositions = new Dictionary<DirectionMask, int>
+
+    /// <summary>
+    /// Binary mask corresponding to different cardinal directions.
+    /// !Don't convert to signed due to arithmetic bit shifting.
+    /// </summary>
+    [Flags]
+    public enum Mask : uint //? maybe unnecessary to use short...
     {
-        {DirectionMask.N, 0},
-        {DirectionMask.E, 1}, 
-        {DirectionMask.S, 2}, 
-        {DirectionMask.W, 3},
+        N = 1 << 0,
+        E = 1 << 1,
+        S = 1 << 2,
+        W = 1 << 3,
 
-        {DirectionMask.U, 4}, 
-        {DirectionMask.D, 5}, 
+        U = 1 << 4,
+        D = 1 << 5,
 
-        {DirectionMask.UN, 6},
-        {DirectionMask.UE, 7}, 
-        {DirectionMask.US, 8}, 
-        {DirectionMask.UW, 9},
+        UN = 1 << 6,
+        UE = 1 << 7,
+        US = 1 << 8,
+        UW = 1 << 9,
 
-        {DirectionMask.DN, 10},
-        {DirectionMask.DE, 11}, 
-        {DirectionMask.DS, 12}, 
-        {DirectionMask.DW, 13},
+        DN = 1 << 10,
+        DE = 1 << 11,
+        DS = 1 << 12,
+        DW = 1 << 13,
 
-        {DirectionMask.NE, 14},
-        {DirectionMask.SE, 15}, 
-        {DirectionMask.SW, 16}, 
-        {DirectionMask.NW, 17},
+        NE = 1 << 14,
+        SE = 1 << 15,
+        SW = 1 << 16,
+        NW = 1 << 17,
+
+        UNE = 1 << 18,
+        USE = 1 << 19,
+        USW = 1 << 20,
+        UNW = 1 << 21,
+
+        DNE = 1 << 22,
+        DSE = 1 << 23,
+        DSW = 1 << 24,
+        DNW = 1 << 25,
+    }
+    public static Dictionary<Mask, int> bitPositions = new Dictionary<Mask, int>
+    {
+        {Mask.N, 0},
+        {Mask.E, 1}, 
+        {Mask.S, 2}, 
+        {Mask.W, 3},
+
+        {Mask.U, 4}, 
+        {Mask.D, 5}, 
+
+        {Mask.UN, 6},
+        {Mask.UE, 7}, 
+        {Mask.US, 8}, 
+        {Mask.UW, 9},
+
+        {Mask.DN, 10},
+        {Mask.DE, 11}, 
+        {Mask.DS, 12}, 
+        {Mask.DW, 13},
+
+        {Mask.NE, 14},
+        {Mask.SE, 15}, 
+        {Mask.SW, 16}, 
+        {Mask.NW, 17},
+
+        {Mask.UNE, 18},
+        {Mask.USE, 19}, 
+        {Mask.USW, 20}, 
+        {Mask.UNW, 21},
+
+        {Mask.DNE, 22},
+        {Mask.DSE, 23}, 
+        {Mask.DSW, 24}, 
+        {Mask.DNW, 25},
     };
 
-    public static int NUM_DIRECTIONS = 18;
-
-    public static bool ExactlyOneBit(DirectionMask direction)
+    /// <summary>
+    /// Maps a single direction to a vector of +/- 1s. Not necessarily normalized.
+    /// </summary>
+    public static Dictionary<Mask, Vector3Int> singleMaskToVector = new Dictionary<Mask, Vector3Int>
     {
-        return (direction > 0) && (direction & (direction - 1)) == 0;
+        {Mask.N, new Vector3Int(0, 1, 0)},
+        {Mask.E, new Vector3Int(1, 0, 0)}, 
+        {Mask.S, new Vector3Int(0, -1, 0)}, 
+        {Mask.W, new Vector3Int(-1, 0, 0)},
+
+        {Mask.U, new Vector3Int(0, 0, 1)}, 
+        {Mask.D, new Vector3Int(0, 0, -1)}, 
+
+        {Mask.UN, new Vector3Int(0, 1, 1)},
+        {Mask.UE, new Vector3Int(1, 0, 1)}, 
+        {Mask.US, new Vector3Int(0, -1, 1)}, 
+        {Mask.UW, new Vector3Int(-1, 0, 1)},
+
+        {Mask.DN, new Vector3Int(0, 1, -1)},
+        {Mask.DE, new Vector3Int(1, 0, -1)},
+        {Mask.DS, new Vector3Int(0, -1, -1)},
+        {Mask.DW, new Vector3Int(-1, 0, -1)},
+
+        {Mask.NE, new Vector3Int(1, 1, 0)},
+        {Mask.SE, new Vector3Int(1, -1, 0)},
+        {Mask.SW, new Vector3Int(-1, -1, 0)},
+        {Mask.NW, new Vector3Int(-1, 1, 0)},
+
+        {Mask.UNE, new Vector3Int(1, 1, 1)},
+        {Mask.USE, new Vector3Int(1, -1, 1)},
+        {Mask.USW, new Vector3Int(-1, -1, 1)},
+        {Mask.UNW, new Vector3Int(-1, 1, 1)},
+
+        {Mask.DNE, new Vector3Int(1, 1, -1)},
+        {Mask.DSE, new Vector3Int(1, -1, -1)},
+        {Mask.DSW, new Vector3Int(-1, -1, -1)},
+        {Mask.DNW, new Vector3Int(-1, 1, -1)},
+    };
+
+    public static readonly int NUM_DIRECTIONS = 26;
+
+    public static readonly Mask[] ALL_DIRECTIONS = new Mask[]
+    {
+        Mask.N,Mask.E,Mask.S,Mask.W,Mask.U,Mask.D,
+        Mask.UN,Mask.UE,Mask.US,Mask.UW,
+        Mask.DN,Mask.DE,Mask.DS,Mask.DW,
+        Mask.NE,Mask.SE,Mask.SW,Mask.NW,
+        Mask.UNE,Mask.USE,Mask.USW,Mask.UNW,
+        Mask.DNE,Mask.DSE,Mask.DSW,Mask.DNW
+    };
+
+    public static bool ExactlyOneBit(Mask direction)
+    {
+        uint d = (uint)direction;
+        return (d != 0) && (d & (d - 1)) == 0;
     }
 
     /// <summary>
     /// Returns a DirectionMask in all the general directions of the given vector.
-    /// E.g. a vector in +x will return a direciton mask in N, UN, SN directions
+    /// E.g. a vector in +x will return a direciton mask in N, UN, DN, NE, etc. directions
     /// Pass an integer for best results. 
     /// </summary>
     /// <param name="direction">Vector in ARRAY SPACE</param>
     /// <returns></returns>
-    public static DirectionMask VectorToMaskLenient(Vector3 direction)
+    public static Mask GeneralDirectionToMask(Vector3 direction)
     {
-        DirectionMask mask = 0;
-        if (direction.x > 0)
-        {
-            mask |= DirectionMask.N | DirectionMask.DN | DirectionMask.UN | DirectionMask.NE | DirectionMask.NW;
-        } else if (direction.x < 0)
-        {
-            mask |= DirectionMask.S | DirectionMask.DS | DirectionMask.US | DirectionMask.SE | DirectionMask.SW;
-        }
-
+        Mask mask = 0;
         if (direction.y > 0)
         {
-            mask |= DirectionMask.E | DirectionMask.DE | DirectionMask.UE | DirectionMask.NE | DirectionMask.SE;
+            mask |= Mask.N | Mask.DN | Mask.UN | Mask.NE | Mask.NW | Mask.UNE | Mask.UNW | Mask.DNE | Mask.DNW;
         } else if (direction.y < 0)
         {
-            mask |= DirectionMask.W | DirectionMask.DW | DirectionMask.UW | DirectionMask.NW | DirectionMask.SW;
+            mask |= Mask.S | Mask.DS | Mask.US | Mask.SE | Mask.SW | Mask.USE | Mask.USW | Mask.DSE | Mask.DSW;
+        }
+
+        if (direction.x > 0)
+        {
+            mask |= Mask.E | Mask.DE | Mask.UE | Mask.NE | Mask.SE | Mask.USE | Mask.UNE | Mask.DSE | Mask.DNE;
+        } else if (direction.x < 0)
+        {
+            mask |= Mask.W | Mask.DW | Mask.UW | Mask.NW | Mask.SW | Mask.USW | Mask.UNW | Mask.DSW | Mask.DNW;
         }
 
         if (direction.z > 0)
         {
-            mask |= DirectionMask.U | DirectionMask.UN | DirectionMask.UE | DirectionMask.US | DirectionMask.UW;
+            mask |= Mask.U | Mask.UN | Mask.UE | Mask.US | Mask.UW | Mask.UNE | Mask.UNW | Mask.USE | Mask.USW;
         } else if (direction.z < 0)
         {
-            mask |= DirectionMask.D | DirectionMask.DN | DirectionMask.DE | DirectionMask.DS | DirectionMask.DW;
+            mask |= Mask.D | Mask.DN | Mask.DE | Mask.DS | Mask.DW | Mask.DNE | Mask.DNW | Mask.DSE | Mask.DSW;
         }
 
         return mask;
     }
 
     /// <summary>
-    /// Returns a DirectionMask in the directions of the given vector points
-    /// E.g. a vector in +x will return a mask in N direction. A vector in +x and +y will return N|E;
+    /// Returns a direction mask in the single direction closest to the given vector in array space
     /// </summary>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public static DirectionMask VectorToMaskStrict(Vector3 direction)
+    public static Mask VectorToClosestMask(Vector3 direction)
     {
         if (direction == Vector3.zero) return 0;
 
-        DirectionMask mask = 0;
-        switch( Mathf.Atan2(direction.y, direction.x))
+        float minDistance = float.MaxValue;
+        Mask closest = 0;
+        foreach(Mask mask in ALL_DIRECTIONS)
         {
-            case >= Mathf.PI * 7f/8:
-                mask |= DirectionMask.W;
-                break;
-            case >= Mathf.PI * 5f/8:
-                mask |= DirectionMask.NW;
-                break;
-            case >= Mathf.PI * 3f/8:
-                mask |= DirectionMask.N;
-                break;
-            case >= Mathf.PI / 8:
-                mask |= DirectionMask.NE;
-                break;
-            case >= -Mathf.PI / 8:
-                mask |= DirectionMask.E;
-                break;
-            case >= -Mathf.PI * 3f/8:
-                mask |= DirectionMask.SE;
-                break;
-            case >= -Mathf.PI * 5f/8:
-                mask |= DirectionMask.S;
-                break;
-            case >= -Mathf.PI * 7f/8:
-                mask |= DirectionMask.SW;
-                break;
-            default:
-                mask |= DirectionMask.W;
-                break; 
+            float distance = (direction.normalized - ((Vector3)singleMaskToVector[mask]).normalized).magnitude;
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closest = mask;
+            }
         }
-
-        switch(Mathf.Atan2(direction.z, direction.x))
-        {
-            case >= Mathf.PI * 7f/8:
-                mask |= DirectionMask.W;
-                break;
-            case >= Mathf.PI * 5f/8:
-                mask |= DirectionMask.UW;
-                break;
-            case >= Mathf.PI * 3f/8:
-                mask |= DirectionMask.U;
-                break;
-            case >= Mathf.PI / 8:
-                mask |= DirectionMask.UE;
-                break;
-            case >= -Mathf.PI / 8:
-                mask |= DirectionMask.E;
-                break;
-            case >= -Mathf.PI * 3f/8:
-                mask |= DirectionMask.DE;
-                break;
-            case >= -Mathf.PI * 5f/8:
-                mask |= DirectionMask.D;
-                break;
-            case >= -Mathf.PI * 7f/8:
-                mask |= DirectionMask.DW;
-                break;
-            default:
-                mask |= DirectionMask.W;
-                break; 
-        }
-
-        switch(Mathf.Atan2(direction.z, direction.y))
-        {
-            case >= Mathf.PI * 7f/8:
-                mask |= DirectionMask.S;
-                break;
-            case >= Mathf.PI * 5f/8:
-                mask |= DirectionMask.US;
-                break;
-            case >= Mathf.PI * 3f/8:
-                mask |= DirectionMask.U;
-                break;
-            case >= Mathf.PI / 8:
-                mask |= DirectionMask.UN;
-                break;
-            case >= -Mathf.PI / 8:
-                mask |= DirectionMask.N;
-                break;
-            case >= -Mathf.PI * 3f/8:
-                mask |= DirectionMask.DN;
-                break;
-            case >= -Mathf.PI * 5f/8:
-                mask |= DirectionMask.D;
-                break;
-            case >= -Mathf.PI * 7f/8:
-                mask |= DirectionMask.DS;
-                break;
-            default:
-                mask |= DirectionMask.S;
-                break; 
-        }
-
-        return mask;
+        return closest;
     }
     
     /// <summary>
-    /// Returns vector in directions of the direction mask.
+    /// Returns an array space vector in directions of the direction mask.
     /// Values in any direction are constrained to 1.
     /// Not normalized
-    /// (x, y, z) = (N, E, U)
+    /// (x, y, z) = (E, N, U)
     /// </summary>
     /// <param name="direction"></param>
     /// <returns></returns>
-    public static Vector3Int MaskToVector(DirectionMask direction)
+    public static Vector3Int MaskToVector(Mask direction)
     {
-        Vector3Int vect = Vector3Int.zero;
-        if (((DirectionMask.N | DirectionMask.UN | DirectionMask.DN | DirectionMask.NE | DirectionMask.NW) & direction) != 0)
-            vect += new Vector3Int(1, 0, 0);
-        if (((DirectionMask.S | DirectionMask.US | DirectionMask.DS | DirectionMask.SE | DirectionMask.SW) & direction) != 0)
-            vect += new Vector3Int(-1, 0, 0);
+        if (!ExactlyOneBit(direction))
+        {
+            Debug.LogWarning("Warning from MaskToVector: Passed mask with multiple directions");
+        }
+        Vector3Int v = Vector3Int.zero;
+        foreach(Mask mask in ALL_DIRECTIONS)
+        {
+            if ((direction & mask) != 0)
+            {
+                v += singleMaskToVector[mask];
+            }
+        }
 
-        if (((DirectionMask.E | DirectionMask.UE | DirectionMask.DE | DirectionMask.NE | DirectionMask.SE) & direction) != 0)
-            vect += new Vector3Int(0, 1, 0);
-        if (((DirectionMask.W | DirectionMask.UW | DirectionMask.DW | DirectionMask.NW | DirectionMask.SW) & direction) != 0)
-            vect += new Vector3Int(0, -1, 0);
-
-        if (((DirectionMask.U | DirectionMask.UN | DirectionMask.UE | DirectionMask.US | DirectionMask.UW) & direction) != 0)
-            vect += new Vector3Int(0, 0, 1);
-        if (((DirectionMask.D | DirectionMask.DN | DirectionMask.DE | DirectionMask.DS | DirectionMask.DW) & direction) != 0)
-            vect += new Vector3Int(0, 0, -1);
-        return vect;
-    }
-
-    public static Vector3Int Vector3Floor(Vector3 v)
-    {
-        return new Vector3Int(Mathf.FloorToInt(v.x), Mathf.FloorToInt(v.y), Mathf.FloorToInt(v.z));
+        //Normalize each component to +/- 1
+        return new Vector3Int(Mathf.Clamp(v.x, -1, 1), Mathf.Clamp(v.y, -1, 1), Mathf.Clamp(v.z, -1, 1));
     }
 
     /// <summary>
@@ -258,18 +272,18 @@ public class DirectionMaskUtils
     /// <param name="pos1"></param>
     /// <param name="pos2"></param>
     /// <returns></returns>
-    public static int SwapBits(int num, int pos1, int pos2)
+    public static uint SwapBits(uint num, int pos1, int pos2)
     {
-        int bit1 = (num >> pos1) & 1;
-        int bit2 = (num >> pos2) & 1;
+        uint bit1 = (num >> pos1) & 1;
+        uint bit2 = (num >> pos2) & 1;
 
         //flip bits if different
-        if ((bit1 ^ bit2) != 0) num ^= (1 << pos1) | (1 << pos2);
+        if ((bit1 ^ bit2) != 0) num ^= (uint)(1 << pos1) | (uint)(1 << pos2);
 
         return num;
     }
 
-    public static DirectionMask SwapBits(DirectionMask mask, int pos1, int pos2)
+    public static Mask SwapBits(Mask mask, int pos1, int pos2)
     {
         int num = (int)mask;
         int bit1 = (num >> pos1) & 1;
@@ -278,7 +292,7 @@ public class DirectionMaskUtils
         //flip bits if different
         if ((bit1 ^ bit2) != 0) num ^= (1 << pos1) | (1 << pos2);
 
-        return (DirectionMask)num;
+        return (Mask)num;
     }
 
     /// <summary>
@@ -286,65 +300,26 @@ public class DirectionMaskUtils
     /// </summary>
     /// <param name="directions"></param>
     /// <returns></returns>
-    public static DirectionMask ReverseMask(DirectionMask direction)
+    public static Mask ReverseMask(Mask direction)
     {
         //theres probably a smarter way to do this but i eepy
-        DirectionMask mask = direction;
-        mask = SwapBits(mask, bitPositions[DirectionMask.N], bitPositions[DirectionMask.S]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.W], bitPositions[DirectionMask.E]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.U], bitPositions[DirectionMask.D]);
+        Mask mask = direction;
+        mask = SwapBits(mask, bitPositions[Mask.N], bitPositions[Mask.S]);
+        mask = SwapBits(mask, bitPositions[Mask.W], bitPositions[Mask.E]);
+        mask = SwapBits(mask, bitPositions[Mask.U], bitPositions[Mask.D]);
 
-        mask = SwapBits(mask, bitPositions[DirectionMask.UN], bitPositions[DirectionMask.DS]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.UE], bitPositions[DirectionMask.DW]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.US], bitPositions[DirectionMask.DN]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.UW], bitPositions[DirectionMask.DE]);
+        mask = SwapBits(mask, bitPositions[Mask.UN], bitPositions[Mask.DS]);
+        mask = SwapBits(mask, bitPositions[Mask.UE], bitPositions[Mask.DW]);
+        mask = SwapBits(mask, bitPositions[Mask.US], bitPositions[Mask.DN]);
+        mask = SwapBits(mask, bitPositions[Mask.UW], bitPositions[Mask.DE]);
 
-        mask = SwapBits(mask, bitPositions[DirectionMask.NE], bitPositions[DirectionMask.SW]);
-        mask = SwapBits(mask, bitPositions[DirectionMask.SE], bitPositions[DirectionMask.NW]);
+        mask = SwapBits(mask, bitPositions[Mask.NE], bitPositions[Mask.SW]);
+        mask = SwapBits(mask, bitPositions[Mask.SE], bitPositions[Mask.NW]);
+
+        mask = SwapBits(mask, bitPositions[Mask.UNE], bitPositions[Mask.DSW]);
+        mask = SwapBits(mask, bitPositions[Mask.USE], bitPositions[Mask.DNW]);
+        mask = SwapBits(mask, bitPositions[Mask.USW], bitPositions[Mask.DNE]);
+        mask = SwapBits(mask, bitPositions[Mask.UNW], bitPositions[Mask.DSE]);
         return mask;
     }
-
-    /// <summary>
-    /// Returns the cardinal directions of a ground plane. E.g. when direction is Up or Down, returns N|E|S|W.
-    /// </summary>
-    /// <param name="direction">Mask with a single direction representing the ground plane</param>
-    /// <returns></returns>
-    public static DirectionMask CardinalsSurroundingAndBelow(DirectionMask direction) => direction switch
-    {
-        DirectionMask.U or DirectionMask.D => DirectionMask.N | DirectionMask.E | DirectionMask.S | DirectionMask.W | DirectionMask.DN | DirectionMask.DE | DirectionMask.DS | DirectionMask.DW,
-        DirectionMask.N or DirectionMask.S => DirectionMask.U | DirectionMask.E | DirectionMask.D | DirectionMask.W,
-        DirectionMask.E or DirectionMask.W => DirectionMask.U | DirectionMask.N | DirectionMask.D | DirectionMask.S,
-        _ => 0
-    };
-}
-
-/// <summary>
-/// Binary mask corresponding to different cardinal directions.
-/// !Don't convert to signed due to arithmetic bit shifting.
-/// </summary>
-[Flags]
-public enum DirectionMask : uint //? maybe unnecessary to use short...
-{
-    N = 1 << 0,
-    E = 1 << 1,
-    S = 1 << 2,
-    W = 1 << 3,
-
-    U = 1 << 4,
-    D = 1 << 5,
-
-    UN = 1 << 6,
-    UE = 1 << 7,
-    US = 1 << 8,
-    UW = 1 << 9,
-
-    DN = 1 << 10,
-    DE = 1 << 11,
-    DS = 1 << 12,
-    DW = 1 << 13,
-
-    NE = 1 << 14,
-    SE = 1 << 15,
-    SW = 1 << 16,
-    NW = 1 << 17,
 }

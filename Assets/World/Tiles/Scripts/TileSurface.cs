@@ -14,18 +14,33 @@ using UnityEngine.Events;
 [Serializable]
 public class TileSurface : MonoBehaviour
 {
-    public TileRules rules => parent.rules;
+    public TileRules rules => parentTile.rules;
     [SerializeField] private int surfaceIndexInRules;
     public TileSurfaceData data => rules.surfaces[surfaceIndexInRules];
-    public DirectionMask orientation => data.orientation;
-    public DirectionMask gravityPlane => data.gravityPlane;
+    public Directions.Mask localOrientation => data.orientation;
+
+    /// <summary>
+    /// Calculates & retrieves the global direction of the "standing plane" of the surface. Opposite direction of gravity. Used to filter connecting surfaces.
+    /// </summary>
+    public Directions.Mask gravityPlane => parentTile.WorldDirection(data.gravityPlane);
+    public Directions.Mask localGravityPlane => data.gravityPlane;
     public TileMount mount => data.mount;
 
-    [SerializeField] Dictionary<DirectionMask, TilePort> _portLookup;
-    public Dictionary<DirectionMask, TilePort>.ValueCollection ports => _portLookup.Values;
+    [SerializeField] Dictionary<Directions.Mask, TilePort> _portLookup;
+    public Dictionary<Directions.Mask, TilePort>.ValueCollection ports => _portLookup.Values;
 
-    [SerializeField] GameplayTile _parent;
-    public GameplayTile parent => _parent;
+    [SerializeField] GameplayTile _parentTile;
+    public GameplayTile parentTile => _parentTile;
+
+    /// <summary>
+    /// Position of tile in WORLD SPACE
+    /// </summary>
+    public Vector3 position => _parentTile.position;
+
+    /// <summary>
+    /// Rotation of tile in WORLD SPACE
+    /// </summary>
+    public Quaternion rotation => _parentTile.rotation;
 
     /// <summary>
     /// Invoked whenever 
@@ -42,7 +57,7 @@ public class TileSurface : MonoBehaviour
     /// </summary>
     /// <param name="direction">Direction of the player/port entering to this surface</param>
     /// <returns></returns>
-    public virtual bool CanEnter(DirectionMask direction)
+    public virtual bool CanEnter(Directions.Mask direction)
     {
         return true;
     }
@@ -64,25 +79,24 @@ public class TileSurface : MonoBehaviour
             if (port.neighbor != null)
             {
                 Gizmos.color = Color.green;
-                Vector3 center = WorldUtils.ArrayToWorldCoordinates((Vector3)parent.arrayPosition + new Vector3(0.5f, 0.5f, 0.5f));
-                Vector3 direction = WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(port.orientation));
+                Vector3 direction = WorldUtils.ArrayToWorldCoordinates(Directions.MaskToVector(port.orientation));
                 float length = 0.5f;
-                Gizmos.DrawRay(center, direction * length);
+                Gizmos.DrawRay(position, direction * length);
             }
         }
     }
 
     public void Initialize(int surfaceIndex, GameplayTile parent)
     {
-        _parent = parent;
+        _parentTile = parent;
         surfaceIndexInRules = surfaceIndex;
 
-        _portLookup = new Dictionary<DirectionMask, TilePort>();
+        _portLookup = new Dictionary<Directions.Mask, TilePort>();
         foreach (TilePortData portData in data.ports)
         {
             TilePort port = new TilePort(portData, this);
-            //Debug.Log("Adding portData: " + portData.orientation + ", " + portData.height);
-            _portLookup.Add(port.orientation, port);
+            //Debug.Log("Adding portData: " + portData.localOrientation + ", " + portData.height);
+            _portLookup.Add(port.localOrientation, port);
         }
         //Debug.Log("Finished constructing surface");
         #if UNITY_EDITOR
@@ -91,15 +105,16 @@ public class TileSurface : MonoBehaviour
     }
 
     /// <summary>
-    /// If this surface has a port whose orientation matches the provided DirectionMask, returns true & sets the output parameter. 
+    /// Attempts to retrieve a port matching the given world orientation.
     /// </summary>
-    /// <param name="mask"></param>
+    /// <param name="worldMask">Direction mask relative to the world</param>
     /// <param name="port"></param>
     /// <returns></returns>
-    public bool TryGetPort(DirectionMask mask, out TilePort port)
+    public bool TryGetPort(Directions.Mask worldMask, out TilePort port)
     {
         if (_portLookup == null) Debug.LogError("Port lookup dictionary is null");
-        return _portLookup.TryGetValue(mask, out port);
+        Directions.Mask inLocal = Directions.VectorToClosestMask(WorldUtils.WorldToArrayCoordinates(Quaternion.Inverse(rotation) * WorldUtils.ArrayToWorldCoordinates(Directions.MaskToVector(worldMask))));
+        return _portLookup.TryGetValue(inLocal, out port);
     }
 
     /// <summary>
@@ -109,24 +124,25 @@ public class TileSurface : MonoBehaviour
     /// *Does not check adjacency
     /// </summary>
     /// <param name="surface"></param>
-    public int SetNeighbors(TileSurface surface, DirectionMask relativeDirection)
+    /// <param name="relativeDirection">Relative direction of tiles in world (not local)</param>
+    public int SetNeighbors(TileSurface surface, Directions.Mask relativeDirection)
     {
         int numNeighbors = 0;
         foreach (TilePort port in ports)
         {
-            if ((port.orientation & relativeDirection) != 0 && surface.TryGetPort(DirectionMaskUtils.ReverseMask(port.orientation), out TilePort neighbor))
+            if ((port.orientation & relativeDirection) != 0 && surface.TryGetPort(Directions.ReverseMask(port.orientation), out TilePort neighbor))
             {
-                Debug.Log("Checking neighbor " + neighbor.orientation + " from tile" + parent.arrayPosition + ", " + orientation);
+                Debug.Log("Checking neighbor " + neighbor.orientation + " from tile" + parentTile.transform.position + ", " + localOrientation);
                if(port.TrySetNeighbor(neighbor)) numNeighbors++;
             }
         }
-        Debug.Log("Found neighbors from " + parent.arrayPosition + " facing " + orientation + ": " + numNeighbors);
+        Debug.Log("Found neighbors from " + parentTile.transform.position + " facing " + localOrientation + ": " + numNeighbors);
         return numNeighbors;
     }
 
     public static implicit operator string(TileSurface surface)
     {
-        return $"TileSurface(@{surface.parent.arrayPosition},{surface.orientation})";
+        return $"TileSurface(@{surface.parentTile.transform.position},Local={surface.localOrientation},World={surface.parentTile.WorldDirection(surface.localOrientation)})";
     }
 }
 
@@ -145,12 +161,12 @@ public struct TileSurfaceData
     public List<TilePortData> ports => _ports;
 
     [Tooltip("Determines how the player stands on the surface")]
-    [SerializeField] DirectionMask _orientation;
-    public DirectionMask orientation => _orientation;
+    [SerializeField] Directions.Mask _orientation;
+    public Directions.Mask orientation => _orientation;
 
     [Tooltip("Use to filter which ports the surface can connect to. Can have multiple planes")]
-    [SerializeField] DirectionMask _gravityPlane;
-    public DirectionMask gravityPlane => _gravityPlane;
+    [SerializeField] Directions.Mask _gravityPlane;
+    public Directions.Mask gravityPlane => _gravityPlane;
 
     [Tooltip("Determines the visualized position of the player on the surface")]
     [SerializeField] TileMount _mount;
@@ -158,13 +174,13 @@ public struct TileSurfaceData
 
     public void OnValidate()
     {
-        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
+        if (!Directions.ExactlyOneBit(_orientation))
         {
             Debug.LogError("Error in TileSurface: orientation must include exactly one direction");
         } else
         {
-            _mount.SetAngleForSurface(orientation);
-            Debug.Log("Set mount rotation: " + _mount.rotation);
+            _mount.SetAngleForSurface(_orientation);
+            Debug.Log($"Set mount rotation for {_orientation}: " + _mount.rotation);
         }
     }
     
@@ -200,36 +216,10 @@ public struct TileMount
     /// </summary>
     public Vector3 offset => _offset;
 
-    public void SetAngleForSurface(DirectionMask surface)
+    public void SetAngleForSurface(Directions.Mask surface)
     {
-        _rotation = Quaternion.LookRotation(Vector3.right, WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(surface)));
-        Debug.Log("Set rotation: " + rotation);
-    }
-
-    public void SetOuterSurfaceMount(DirectionMask surface, float offsetAmount)
-    {
-        SetAngleForSurface(surface);
-        switch(surface)
-        {
-            case DirectionMask.U:
-                _offset = offsetAmount * Vector3.up;
-                break;
-            case DirectionMask.D:
-                _offset = offsetAmount * Vector3.down;
-                break;
-            case DirectionMask.N:
-                _offset = offsetAmount * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.N));
-                break;
-            case DirectionMask.S:
-                _offset = offsetAmount * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.S));
-                break;
-            case DirectionMask.W:
-                _offset = offsetAmount * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.W));
-                break;
-            case DirectionMask.E:
-                _offset = offsetAmount * WorldUtils.ArrayToWorldCoordinates(DirectionMaskUtils.MaskToVector(DirectionMask.E));
-                break;
-        }
+        _rotation = Quaternion.LookRotation(Vector3.right, WorldUtils.ArrayToWorldCoordinates((Vector3)Directions.singleMaskToVector[surface]));
+        Debug.Log($"Set rotation for {surface}, {Directions.singleMaskToVector[surface]}, {WorldUtils.ArrayToWorldCoordinates(Directions.singleMaskToVector[surface])}: " + rotation);
     }
 }
     

@@ -15,6 +15,16 @@ public class WorldUtils
     }
 
     /// <summary>
+    /// Translates a from a array position (poisition in (x, y, z) where z is height) to a world space position.
+    /// Works with rotation vectors.
+    /// * Uses a WASD = NE,NW,SW,SE control scheme
+    /// </summary>
+    public static Vector3Int ArrayToWorldCoordinates(Vector3Int arrayCoordinates, float scaleFactor = isometricToWorldScaleFactor)
+    {
+        return new Vector3Int(arrayCoordinates.y, arrayCoordinates.z, arrayCoordinates.x);
+    }
+
+    /// <summary>
     /// Translates a from a world position to a array position.
     /// Works with rotation vectors.
     /// * Assumes a WASD = NE,NW,SW,SE control scheme

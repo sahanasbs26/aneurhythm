@@ -1,5 +1,4 @@
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
 
 /// <summary>
@@ -11,15 +10,20 @@ using UnityEngine;
 [Serializable]
 public class TilePort
 {
+    public static readonly float HEIGHT_DIFFERENCE_EPSILON = 0.05f;
     [SerializeField] TilePortData data;
 
-    public float _height;
-    public float height => _height;
+    //Assume height is measured from tile center
     public float heightOffset => data.heightOffset;
-    public DirectionMask orientation => data.orientation;
-    public DirectionMask gravityPlane => _parentSurface.gravityPlane;
 
-    [SerializeReference] TilePort _neighbor;
+    /// <summary>
+    /// Calculates & returns direction of port in global space. Based off the local direction and the parent tile's rotation. 
+    /// </summary>
+    public Directions.Mask orientation => _parentSurface.parentTile.WorldDirection(localOrientation);
+    public Directions.Mask localOrientation => data.orientation;
+    public Directions.Mask gravityPlane => _parentSurface.gravityPlane;
+
+    TilePort _neighbor;
     public TilePort neighbor => _neighbor;
 
     [SerializeField] TileSurface _parentSurface;
@@ -29,7 +33,6 @@ public class TilePort
     public TilePort(TilePortData data, TileSurface parent)
     {
         this.data = data;
-        _height = parent.parent.arrayPosition.z + data.heightOffset;
         _parentSurface = parent;
     }
 
@@ -42,9 +45,14 @@ public class TilePort
     /// <returns></returns>
     public bool TrySetNeighbor(TilePort port)
     {
-        if (Mathf.Approximately(height, port.height) && ((DirectionMaskUtils.ReverseMask(orientation) & port.orientation) != 0) && (gravityPlane & port.gravityPlane) != 0)
+        Vector3 g = WorldUtils.ArrayToWorldCoordinates((Vector3)Directions.MaskToVector(gravityPlane)).normalized;
+        float h1 = Vector3.Dot(port.parentSurface.position, g) + port.data.heightOffset;
+        float h0 = Vector3.Dot(parentSurface.position, g) + data.heightOffset;
+        float heightDifference = h1 - h0;
+        if (Mathf.Abs(heightDifference) < HEIGHT_DIFFERENCE_EPSILON && ((Directions.ReverseMask(orientation) & port.orientation) != 0) && (gravityPlane & port.gravityPlane) != 0)
         {
             Debug.Log($"Found match from {(string)this}@{(string)parentSurface} to {(string)port}@{(string)port.parentSurface}");
+            Debug.Log($"h1={h1}, h0={h0}");
             _neighbor = port;
             port._neighbor = this;
             return true;
@@ -52,9 +60,18 @@ public class TilePort
         return false;
     }
 
+    public void Unlink()
+    {
+        if (_neighbor != null && _neighbor._neighbor == this)
+        {
+            _neighbor._neighbor = null;
+        }
+        _neighbor = null;
+    }
+
     public static implicit operator string(TilePort port)
     {
-        return $"TilePort({port.orientation},H={port.height})";
+        return $"TilePort(World={port.orientation},Local={port.localOrientation}, H={port.heightOffset})";
     }
 }
 
@@ -73,14 +90,14 @@ public struct TilePortData
     public float heightOffset => _heightOffset;
 
     [Tooltip("Opposite-facing ports allow movement between")]
-    [SerializeField] DirectionMask _orientation;
-    public DirectionMask orientation => _orientation;
+    [SerializeField] Directions.Mask _orientation;
+    public Directions.Mask orientation => _orientation;
 
     public void OnValidate()
     {    
-        if (!DirectionMaskUtils.ExactlyOneBit(_orientation))
+        if (!Directions.ExactlyOneBit(_orientation))
         {
-            _orientation = DirectionMask.N;
+            _orientation = Directions.Mask.N;
             Debug.LogError("Error in TilePort: orientation must include exactly one direction");
         }
     }

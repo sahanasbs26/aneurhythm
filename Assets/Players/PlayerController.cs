@@ -14,9 +14,9 @@ public class PlayerController : MonoBehaviour
     public const float defaultMoveTime = 0.1f;
 
     [SerializeField] Vector3 basePosition = Vector3Int.zero;
-    [SerializeField] Vector3 baseOffset = new(0.5f, 1, 0.5f);
+    [SerializeField] Vector3 baseOffset = new(0.5f, 0, 0.5f);
     Vector3 totalOffset;
-    [SerializeReference] TileSurface startingSurface;
+    [SerializeReference] GameplayTile startingTile;
     TileSurface currentSurface;
     [SerializeField] PlayerManager playerManager;
 
@@ -30,15 +30,13 @@ public class PlayerController : MonoBehaviour
         if (!IsValid()) return;
     }
 
-    void Start()
+    public void Initialize()
     {
-        OnStart();
-    }
-
-    public void OnStart()
-    {
-        currentSurface = startingSurface;
-        MoveToStartingSurface();
+        currentSurface = startingTile.surfaces[0];
+        basePosition = currentSurface.position;
+        totalOffset = baseOffset + currentSurface.mount.offset;
+        transform.position = basePosition + totalOffset;
+        transform.rotation = currentSurface.mount.rotation;
     }
 
     /// <summary>
@@ -106,11 +104,11 @@ public class PlayerController : MonoBehaviour
         //return;
         Vector2 rawInput = value.Get<Vector2>();
         rawInput.x *= -1; //Invert so "D" or "Right" is positive
-        Vector3Int direction = DirectionMaskUtils.Vector3Floor(rawInput);
+        Vector3Int direction = Vector3Int.FloorToInt(rawInput);
         if (ArrayManager.FindMoveableTarget(currentSurface, direction, out TileSurface targetSurface))
         {
             currentSurface = targetSurface;
-            basePosition = targetSurface.transform.position;
+            basePosition = targetSurface.position;
             totalOffset = baseOffset + targetSurface.mount.offset;
             //Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
             
@@ -133,9 +131,9 @@ public class PlayerController : MonoBehaviour
             Debug.LogError($"Error in {(string)this}: playerManager is not assigned");
             isError = true;
         }
-        if (startingSurface == null)
+        if (startingTile == null)
         {
-            Debug.LogError($"Error in {(string)this}: startingSurface is not assigned");
+            Debug.LogError($"Error in {(string)this}: startingTile is not assigned");
             isError = true;
         }
         return isError;
@@ -148,12 +146,12 @@ public class PlayerController : MonoBehaviour
 
     void MoveToStartingSurface()
     {
-        if (startingSurface != null && basePosition != startingSurface.transform.position)
+        if (startingTile != null && basePosition != startingTile.position)
         {
-            basePosition = startingSurface.transform.position;
-            totalOffset = baseOffset + startingSurface.mount.offset;
+            basePosition = startingTile.position;
+            totalOffset = baseOffset + startingTile.surfaces[0].mount.offset;
             transform.position = basePosition + totalOffset;
-            transform.rotation = startingSurface.mount.rotation;
+            transform.rotation = startingTile.surfaces[0].mount.rotation;
         }
     }
 
