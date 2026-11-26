@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Controls visual beat icons
@@ -13,6 +14,8 @@ public class BeatManager : MonoBehaviour
     [SerializeField] protected Lane player1;
     [SerializeField] protected Lane player2;
     protected Lane[] lanes;
+
+    [SerializeField] public UnityEvent onBeat;
 
 
     [Header("Beat Pattern Properties")]

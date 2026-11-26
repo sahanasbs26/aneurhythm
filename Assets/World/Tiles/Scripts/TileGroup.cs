@@ -21,14 +21,14 @@ using UnityEngine.Tilemaps;
 /// </summary>
 public class TileGroup : MonoBehaviour
 {
-    [SerializeField] Quaternion _initialRotation;
+    [SerializeField] protected Quaternion _initialRotation;
     public Quaternion initialRotation => _initialRotation;
-    [SerializeField] Vector3 _initialPosition;
+    [SerializeField] protected Vector3 _initialPosition;
     public Vector3 initialPosition => _initialPosition;
-    [SerializeField] Pose[] _poses;
+    [SerializeField] protected Pose[] _poses;
     [SerializeField] ArrayManager arrayManager;
 
-    int _poseIndex = 0;
+    protected int _poseIndex = 0;
     public int poseIndex => _poseIndex;
     public Pose pose => _poses[_poseIndex];
     public Vector3 position => pose.position;
@@ -43,7 +43,7 @@ public class TileGroup : MonoBehaviour
     public List<GameplayTile> tiles => _tiles;
 
     [SerializeField] List<TileGroup> connectedTileGroups; 
-    List<GameplayTile> neighborTiles;
+    protected List<GameplayTile> neighborTiles;
 
     void Awake()
     {
@@ -52,24 +52,15 @@ public class TileGroup : MonoBehaviour
             Debug.LogError("TileGroup not attached to a grid object");
         }
 
-        neighborTiles = new List<GameplayTile>();
-        if (_tiles == null)
-        {
-            _tiles = new List<GameplayTile>();
-            foreach(Tilemap tilemap in gameObject.GetComponentsInChildren<Tilemap>())
-            {
-                _tiles.AddRange(tilemap.GetComponentsInChildren<GameplayTile>());
-            }
-        }
-
     }
 
     /// <summary>
-    /// Call after level has been completedd to populate array
+    /// Must be called after all tiles in the TileGroups of connectedTileGroups have been initialized 
     /// </summary>
     public void InitializeGroup()
     {
         //Set connecting tiles within group
+        neighborTiles = new List<GameplayTile>();
         ArrayManager.SetTileNeighbors(_tiles, _tiles);
         if (connectedTileGroups != null)
         {
@@ -81,9 +72,13 @@ public class TileGroup : MonoBehaviour
         _poseIndex = 0;
         _initialPosition = transform.position;
         _initialRotation = transform.rotation;
-        ChangePose(_poseIndex);
+        ChangeStitchPose(_poseIndex);
+        SetVisualPosition();
     }
 
+    /// <summary>
+    /// Initialize child tiles and compile them into a list
+    /// </summary>
     public void InitializeTiles()
     {
         _tiles = new List<GameplayTile>();
@@ -95,32 +90,46 @@ public class TileGroup : MonoBehaviour
             foreach (GameplayTile tile in levelTiles)
             {
                 tile.Initialize(this);
-                Vector3 pos = tile.position;
-                Debug.Log("Found tile at pos: " + pos);
+                //Vector3 pos = tile.position;
+                //Debug.Log("Found tile at pos: " + pos);
             }
             _tiles.AddRange(levelTiles);
         }
     }
 
     [ContextMenu("Initialize")]
-    void InitializeFromEditor()
+    void InitializeTilesFromEditor()
     {
         InitializeTiles();
-        InitializeGroup();
         #if UNITY_EDITOR
         UnityEditor.EditorUtility.SetDirty(this);
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
         #endif
     }
 
-    void ChangePose(int newIndex)
+
+    /// <summary>
+    /// Changes simulated pose and connections between blocks without yet setting the transform's position
+    /// </summary>
+    /// <param name="newIndex"></param>
+    protected virtual void ChangeStitchPose(int newIndex)
     {
         _poseIndex = newIndex;
 
-        //TODO: Add interpolation
+        StitchNeighbors();
+    }
+
+    /// <summary>
+    /// Sets transform's position and rotation to its simulated position (based off current pose).
+    /// </summary>
+    public void SetVisualPosition()
+    {
         transform.position = position;
         transform.rotation = rotation;
+    }
 
+    protected void StitchNeighbors()
+    {
         if (connectedTileGroups != null && neighborTiles != null)
         {
             ArrayManager.SetTileNeighbors(_tiles, neighborTiles);
@@ -132,8 +141,10 @@ public class TileGroup : MonoBehaviour
 public struct Pose
 {
     [SerializeField] Vector3 _position;
-    [SerializeField] Quaternion _rotation;
+    [SerializeField] Vector3 _rotation;
+    [SerializeField] int _beat;
 
     public Vector3 position => _position;
-    public Quaternion rotation => _rotation;
+    public Quaternion rotation => Quaternion.Euler(_rotation);
+    public int beat => _beat;
 }

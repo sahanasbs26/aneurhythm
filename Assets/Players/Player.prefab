@@ -116,7 +116,7 @@ Transform:
   m_GameObject: {fileID: 3715613216588379334}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 5.11}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   isPlayer2: 0
-  gridPosition: {x: 0, y: 0, z: 0}
-  worldOffset: {x: 0.5, y: 1, z: 0.5}
-  arrayManager: {fileID: 0}
-  currentSurface: {fileID: 0}
+  basePosition: {x: 0, y: 0, z: 0}
+  baseOffset: {x: 0.5, y: 1, z: 0.5}
+  startingTile: {fileID: 0}
+  playerManager: {fileID: 0}

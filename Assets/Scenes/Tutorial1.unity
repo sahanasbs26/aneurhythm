@@ -185,6 +185,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 596684167597524093, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
+      propertyPath: startingTile
+      value: 
+      objectReference: {fileID: 1918588938}
+    - target: {fileID: 596684167597524093, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
       propertyPath: startingSurface
       value: 
       objectReference: {fileID: 555790123}
@@ -252,6 +256,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2632956535395004279, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
+      propertyPath: startingTile
+      value: 
+      objectReference: {fileID: 1987732209}
     - target: {fileID: 2632956535395004279, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
       propertyPath: startingSurface
       value: 
@@ -332,6 +340,14 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8138257034997746141, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
+      propertyPath: tileGroups.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8138257034997746141, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
+      propertyPath: 'tileGroups.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1809946543}
     - target: {fileID: 8459819359862085031, guid: b6b658edd9f764fe681a3b9c348ea5f0, type: 3}
       propertyPath: m_Name
       value: GameManager
@@ -602,6 +618,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1809946543 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1765364782462118815, guid: bd7484cd4147f48a0aa50390366a29d0, type: 3}
+  m_PrefabInstance: {fileID: 14352376}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7eb8c1f74218c4d63bd2377e48c5d19e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TileGroup
+--- !u!114 &1918588938 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1101171223393740142, guid: bd7484cd4147f48a0aa50390366a29d0, type: 3}
+  m_PrefabInstance: {fileID: 14352376}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c23c78763c7834295b26dda8b4da39f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
 --- !u!114 &1987732208 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7006135466962823524, guid: bd7484cd4147f48a0aa50390366a29d0, type: 3}
@@ -613,6 +651,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 34386377056a748ce818e99d3a033296, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileSurface
+--- !u!114 &1987732209 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2148659240204735537, guid: bd7484cd4147f48a0aa50390366a29d0, type: 3}
+  m_PrefabInstance: {fileID: 14352376}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c23c78763c7834295b26dda8b4da39f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

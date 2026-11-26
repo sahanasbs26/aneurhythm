@@ -47,10 +47,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   beatManager: {fileID: 0}
-  arrayManager: {fileID: 0}
   player1: {fileID: 370536841700378279}
   player2: {fileID: 3020108136380640685}
-  lives: 3
+  startingLives: 3
+  bypassBeatCheck: 0
 --- !u!1001 &6363490062974749324
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -65,15 +65,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 4.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalRotation.w
@@ -154,15 +154,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 4.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3960744547369772026, guid: 53b0f1a987cb242edbce652cd276ddf1, type: 3}
       propertyPath: m_LocalRotation.w

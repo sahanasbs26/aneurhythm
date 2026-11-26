@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using UnityEngine;
 
 //TODO: Add support for looped audio (Easy) or looping a segment of the audio after initial playback(Hard?)
@@ -30,6 +29,10 @@ public class SongManager : MonoBehaviour
     BeatManager beatManager;
 
     double _timePerBeat;
+
+    /// <summary>
+    /// Duration of one beat in seconds
+    /// </summary>
     public double timePerBeat => _timePerBeat;
 
     double _startTime;

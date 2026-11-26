@@ -29,5 +29,5 @@ MonoBehaviour:
     _orientation: 256
     _gravityPlane: 16
     _mount:
-      _rotation: {x: -0.27059805, y: 0.6532815, z: -0.27059805, w: 0.6532815}
+      _rotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
       _offset: {x: 0, y: 0, z: 0}

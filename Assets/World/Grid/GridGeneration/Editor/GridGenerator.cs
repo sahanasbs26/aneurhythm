@@ -1,8 +1,6 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
-using UnityEngine.Tilemaps;
-using Unity.VisualScripting;
 
 /// <summary>
 /// Generates a 3D tilemap grid.
@@ -52,7 +50,7 @@ public class GridGenerator : Editor
     {
         //Create tilemap grid
         Grid grid = obj.AddComponent<Grid>();
-        ArrayManager manager = grid.AddComponent<ArrayManager>();
+        ArrayManager manager = grid.gameObject.AddComponent<ArrayManager>();
         manager.gridData = gridData;
         manager.grid = grid;
 

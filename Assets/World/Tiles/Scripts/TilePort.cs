@@ -52,7 +52,7 @@ public class TilePort
         if (Mathf.Abs(heightDifference) < HEIGHT_DIFFERENCE_EPSILON && ((Directions.ReverseMask(orientation) & port.orientation) != 0) && (gravityPlane & port.gravityPlane) != 0)
         {
             Debug.Log($"Found match from {(string)this}@{(string)parentSurface} to {(string)port}@{(string)port.parentSurface}");
-            Debug.Log($"h1={h1}, h0={h0}");
+            //Debug.Log($"h1={h1}, h0={h0}");
             _neighbor = port;
             port._neighbor = this;
             return true;

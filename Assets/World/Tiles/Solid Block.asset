@@ -22,6 +22,14 @@ MonoBehaviour:
       _orientation: 4
     - _heightOffset: 0.5
       _orientation: 8
+    - _heightOffset: 0.5
+      _orientation: 64
+    - _heightOffset: 0.5
+      _orientation: 128
+    - _heightOffset: 0.5
+      _orientation: 256
+    - _heightOffset: 0.5
+      _orientation: 512
     _orientation: 16
     _gravityPlane: 16
     _mount:

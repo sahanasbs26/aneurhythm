@@ -11,9 +11,6 @@ public class ArrayManager : MonoBehaviour
     public GridData gridData;
     public TileGroup tileGroup;
 
-    List<GameplayTile> _tiles;
-    public List<GameplayTile> tiles => _tiles;
-
     public static readonly float EPSILON_ROUNDED_SQR_MAGNITUDE = 0.01f; 
 
 
@@ -58,7 +55,7 @@ public class ArrayManager : MonoBehaviour
             neighborMap.Add(RoundAndWarn(tile.position), tile);
         }
 
-        //UnlinkTiles(originTiles, neighborTiles);
+        UnlinkTiles(originTiles, neighborTiles);
 
         Debug.Log("Setting tile neighbors");
         foreach((Vector3Int pos, GameplayTile tile) in originMap)
@@ -121,7 +118,7 @@ public class ArrayManager : MonoBehaviour
                 Vector3Int targetPos = roundedPos + targetDirection;
 
                 targets.Add((targetPos, worldOrientation));
-                Debug.Log($"\t\tFrom {(string)surface} found port: {(string)port}, Target={targetPos}");
+                //Debug.Log($"\t\tFrom {(string)surface} found port: {(string)port}, Target={targetPos}");
             }
         }
         return targets;

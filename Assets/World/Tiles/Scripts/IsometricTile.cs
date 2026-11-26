@@ -23,8 +23,8 @@ public class GameplayTile : MonoBehaviour
     [SerializeField] Vector3 localPosition;
     [SerializeField] Quaternion localRotation;
 
-    public Vector3 position => tileGroup.position + tileGroup.rotation * localPosition;
-    public Quaternion rotation => tileGroup.rotation * localRotation;
+    public Vector3 position => _tileGroup.position + _tileGroup.rotation * localPosition;
+    public Quaternion rotation => _tileGroup.rotation * localRotation;
 
     void Start()
     {

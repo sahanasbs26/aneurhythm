@@ -1594,6 +1594,7 @@ GameObject:
   - component: {fileID: 1756950946315485013}
   - component: {fileID: 8114608584956441667}
   - component: {fileID: 6748902935084585675}
+  - component: {fileID: 8138257034997746141}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1685,6 +1686,24 @@ MonoBehaviour:
   beatManager: {fileID: 2252922822085699505}
   inputManager: {fileID: 1756950946315485013}
   playerManager: {fileID: 2996986772099033121}
+--- !u!114 &8138257034997746141
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8459819359862085031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5daa9bc174d604fa69dc7a0c8e2677d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  tileGroups:
+  - {fileID: 0}
+  - {fileID: 0}
+  players:
+  - {fileID: 596684167597524093}
+  - {fileID: 2632956535395004279}
 --- !u!1 &8580216508725560766
 GameObject:
   m_ObjectHideFlags: 0
@@ -1949,6 +1968,14 @@ PrefabInstance:
       propertyPath: basePosition.z
       value: -4
       objectReference: {fileID: 0}
+    - target: {fileID: 4788787944672445052, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.08763
+      objectReference: {fileID: 0}
+    - target: {fileID: 4788787944672445052, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -5.99192
+      objectReference: {fileID: 0}
     - target: {fileID: 6991790844418019023, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1989,11 +2016,41 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7978351390019610998, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.9123697
+      objectReference: {fileID: 0}
+    - target: {fileID: 7978351390019610998, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.00808
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+--- !u!114 &596684167597524093 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 370536841700378279, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+  m_PrefabInstance: {fileID: 964808661173994202}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96fd5e2c438e34ec68a616e9d4bf0e3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+--- !u!114 &2632956535395004279 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3020108136380640685, guid: ef368a227ab564e75b60636e08c0db37, type: 3}
+  m_PrefabInstance: {fileID: 964808661173994202}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96fd5e2c438e34ec68a616e9d4bf0e3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
 --- !u!114 &2996986772099033121 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2662999341563570939, guid: ef368a227ab564e75b60636e08c0db37, type: 3}

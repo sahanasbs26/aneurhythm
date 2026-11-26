@@ -132,11 +132,11 @@ public class TileSurface : MonoBehaviour
         {
             if ((port.orientation & relativeDirection) != 0 && surface.TryGetPort(Directions.ReverseMask(port.orientation), out TilePort neighbor))
             {
-                Debug.Log("Checking neighbor " + neighbor.orientation + " from tile" + parentTile.transform.position + ", " + localOrientation);
+                //Debug.Log("Checking neighbor " + neighbor.orientation + " from tile" + parentTile.transform.position + ", " + localOrientation);
                if(port.TrySetNeighbor(neighbor)) numNeighbors++;
             }
         }
-        Debug.Log("Found neighbors from " + parentTile.transform.position + " facing " + localOrientation + ": " + numNeighbors);
+        //Debug.Log("Found neighbors from " + parentTile.transform.position + " facing " + localOrientation + ": " + numNeighbors);
         return numNeighbors;
     }
 

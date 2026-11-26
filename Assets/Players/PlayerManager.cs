@@ -39,7 +39,7 @@ public class PlayerManager : MonoBehaviour
             (player == PlayerID.P1 ? player1 : player2).OnMove(value);
         } else
         {
-            Debug.Log($"{player.HumanName()} Misstep: {error*1000}ms");
+            //Debug.Log($"{player.HumanName()} Misstep: {error*1000}ms");
             lives--;
         }
     }

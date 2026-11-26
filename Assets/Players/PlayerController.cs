@@ -22,12 +22,21 @@ public class PlayerController : MonoBehaviour
 
     //Handles interpolation coroutine
     Coroutine moveCoroutine = null;
-    Vector3 currentDestination;
-    Quaternion currentRotationDestination;
+    TileSurface currentDestination;
+
+    Quaternion moveDirectionRotation = Quaternion.identity;
 
     void Awake()
     {
         if (!IsValid()) return;
+    }
+
+    void Update()
+    {
+        basePosition = currentSurface.position;
+        totalOffset = baseOffset + currentSurface.mount.offset;
+        Vector3 visualPosition = currentSurface.transform.position + totalOffset + new Vector3(0.5f, 0.5f, 0.5f);
+        transform.position = visualPosition;
     }
 
     public void Initialize()
@@ -43,35 +52,38 @@ public class PlayerController : MonoBehaviour
     /// Moves player to specified position in array coordinates
     /// </summary>
     /// <param name="arrayCoordinates"></param>
-    void MovePlayer(Vector3 worldPosition, Quaternion rotation)
+    void MovePlayer(TileSurface surface)
     {
         if (moveCoroutine != null)
         {
             StopCoroutine(moveCoroutine);
-            transform.position = currentDestination;
-            transform.rotation = currentRotationDestination;
+            transform.position = WorldSurfacePosition(currentDestination);
+            transform.rotation = WorldSurfaceRotation(currentDestination);
         }
-        moveCoroutine = StartCoroutine(LerpToPosition(worldPosition, rotation));
+        moveCoroutine = StartCoroutine(LerpToSurface(surface));
     }
 
     /// <summary>
     /// Interpolates movement to a new position and rotation. Call as a coroutine.
     /// </summary>
-    IEnumerator LerpToPosition(Vector3 worldCoordinates, Quaternion rotation, float moveDuration = defaultMoveTime)
+    IEnumerator LerpToSurface(TileSurface surface, float moveDuration = defaultMoveTime)
     {
         float elapsedTime = 0;
-        currentDestination = worldCoordinates;
-        currentRotationDestination = rotation;
+        currentDestination = surface;
+
+        Vector3 initialPos = transform.position;
+        Vector3 worldCoordinates = WorldSurfacePosition(surface);
+
+        //Save initial rotation for linear interpolation
+        Quaternion initialRotation = transform.rotation;
+        Quaternion rotation = WorldSurfaceRotation(surface);
 
         //Set initial position for a spherical interpolation (interpolates between two vectors treated as rays along a sphere; must therefore adjust for center pos)
-        Vector3 initialPos = transform.position;
         Vector3 center = (worldCoordinates + initialPos) * 0.5f;
         center -= Vector3.up * (worldCoordinates - initialPos).magnitude / 2.0f;
         Vector3 initialRelCenter = initialPos - center;
         Vector3 finalRelCenter = worldCoordinates - center;
 
-        //Save initial rotation for linear interpolation
-        Quaternion initialRotation = transform.rotation;
         while (elapsedTime < moveDuration)
         {
             float t = elapsedTime / moveDuration;
@@ -112,13 +124,16 @@ public class PlayerController : MonoBehaviour
             totalOffset = baseOffset + targetSurface.mount.offset;
             //Debug.Log($"Moving to array {gridPosition} world{WorldUtils.ArrayToWorldCoordinates(gridPosition)} with offset {currentSurface.mount.offset} and rotation {currentSurface.mount.rotation}");
             
-            Quaternion moveDirectionRotation = Quaternion.LookRotation(WorldUtils.ArrayToWorldCoordinates((Vector3)rawInput));
-            MovePlayer(
-                basePosition + totalOffset, 
-                currentSurface.mount.rotation * moveDirectionRotation
-                ); 
+            moveDirectionRotation = Quaternion.LookRotation(WorldUtils.ArrayToWorldCoordinates((Vector3)rawInput));
+            MovePlayer(targetSurface); 
         }
     }
+
+    //Offset of player on its tile
+    Vector3 LocalOffset(TileSurface s) => s.mount.offset + baseOffset + new Vector3(0.5f, 0.5f, 0.5f);
+    Quaternion LocalRotation(TileSurface s) => s.mount.rotation * moveDirectionRotation; 
+    Vector3 WorldSurfacePosition(TileSurface s) => s.transform.position + s.transform.rotation * LocalOffset(s);
+    Quaternion WorldSurfaceRotation(TileSurface s) => s.transform.rotation * LocalRotation(s);
 
     /// <summary>
     /// Checks whether serialized fields are set properly
